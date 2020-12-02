@@ -3,7 +3,7 @@ use std::io::Read;
 
 
 fn main() {
-    let flag: usize = 2020;
+    let flag_hint: usize = 2020;
 
     let mut input_file = File::open("input.txt").unwrap();
     let mut contents = String::new();
@@ -16,7 +16,7 @@ fn main() {
 
     for entry_idx in 1..entries.len() {
         for inner_entry_idx in 1..entries.len() {
-            if entries[entry_idx] + entries[inner_entry_idx] == flag {
+            if entries[entry_idx] + entries[inner_entry_idx] == flag_hint {
                 println!("Flag found: {}", entries[entry_idx] * entries[inner_entry_idx]);
                 println!("Entries {} {}", entries[entry_idx], entries[inner_entry_idx]);
             }
