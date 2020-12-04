@@ -7,10 +7,36 @@ fn main() {
         .lines()
         .collect();
 
+    let mut column_increment = 1;
+    let mut line_increment = 1;
+    let mut tree_multiples = slide_down(&lines, column_increment, line_increment);
+
+    column_increment = 3;
+    tree_multiples *= slide_down(&lines, column_increment, line_increment);
+
+    column_increment = 5;
+    tree_multiples *= slide_down(&lines, column_increment, line_increment);
+
+    column_increment = 7;
+    tree_multiples *= slide_down(&lines, column_increment, line_increment);
+
+    column_increment = 1;
+    line_increment = 2;
+    tree_multiples *= slide_down(&lines, column_increment, line_increment);
+
+    println!("{}", tree_multiples);
+}
+
+fn slide_down(
+    lines: &Vec<&str>,
+    right_increment: usize,
+    down_increment: usize,
+    ) -> usize {
+
     let mut column = 0;
     let mut encountered_trees = 0;
 
-    for line in &lines {
+    for line in lines.iter().step_by(down_increment) {
         if column >= line.len() {
             println!("{}", column);
             column -= line.len();
@@ -22,7 +48,8 @@ fn main() {
             encountered_trees += 1;
             println!("{}^ Tree at column {}", " ".repeat(column), column);
         }
-        column += 3;
+        column += right_increment;
     }
     println!("Encountered {} trees", encountered_trees);
+    encountered_trees
 }
