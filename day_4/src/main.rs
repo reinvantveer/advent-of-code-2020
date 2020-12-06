@@ -75,10 +75,51 @@ fn is_valid_passport_by_properties(passport: &&str) -> bool {
         );
         let valid_value = match key {
             "byr" => val.parse::<usize>().unwrap() >= 1920 && val.parse::<usize>().unwrap() <= 2002,
-            _ => false
+            "iyr" => val.parse::<usize>().unwrap() >= 2010 && val.parse::<usize>().unwrap() <= 2020,
+            "eyr" => val.parse::<usize>().unwrap() >= 2020 && val.parse::<usize>().unwrap() <= 2030,
+            "hgt" => is_valid_height(val),
+            "hcl" => is_valid_hair_color(val),
+
+            _ => true
         };
         if !valid_value { return false };
     }
+
+    true
+}
+
+fn is_valid_height(height: &str) -> bool {
+    // There should be at least one digit and two chars for the unit for the height
+    if height.len() <= 3 {
+        return false;
+    }
+
+    let units_start = height.len() - 2;
+    let height_str_end = height.len();
+    let units = &height[units_start..height_str_end];
+    let amount: usize = height[0..units_start].parse().unwrap();
+
+    // println!("{}", units);
+
+    match units {
+        "cm" => amount >= 150 && amount <= 193,
+        "in" => amount >= 59 && amount <= 76,
+        _ => false
+    }
+}
+
+fn is_valid_hair_color(color: &str) -> bool {
+    // Hair color should start with a pound sign
+    if !color.starts_with("#") {
+        return false;
+    }
+
+    // Hair color string should consist of 7 chars
+    if !color.len() == 7 {
+        return false;
+    }
+
+    // TODO: all chars from [1..8] should be in hex
 
     true
 }
