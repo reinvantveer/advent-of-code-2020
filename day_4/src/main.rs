@@ -84,7 +84,10 @@ fn is_valid_passport_by_properties(passport: &&str) -> bool {
 
             _ => true
         };
-        if !valid_value { return false; };
+
+        if !valid_value {
+            return false;
+        }
     }
 
     true
