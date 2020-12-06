@@ -120,8 +120,11 @@ fn is_valid_hair_color(color: &str) -> bool {
     }
 
     // TODO: all chars from [1..8] should be in hex
-
-    true
+    let color_parse_result = i64::from_str_radix(&color[1..color.len()], 16);
+    match color_parse_result {
+        Ok(_t) => true,
+        Err(_e) => false
+    }
 }
 
 #[cfg(test)]
