@@ -79,10 +79,12 @@ fn is_valid_passport_by_properties(passport: &&str) -> bool {
             "eyr" => val.parse::<usize>().unwrap() >= 2020 && val.parse::<usize>().unwrap() <= 2030,
             "hgt" => is_valid_height(val),
             "hcl" => is_valid_hair_color(val),
+            "ecl" => is_valid_eye_color(val),
+            "pid" => is_valid_passport_id(val),
 
             _ => true
         };
-        if !valid_value { return false };
+        if !valid_value { return false; };
     }
 
     true
@@ -119,9 +121,27 @@ fn is_valid_hair_color(color: &str) -> bool {
         return false;
     }
 
-    // TODO: all chars from [1..8] should be in hex
     let color_parse_result = i64::from_str_radix(&color[1..color.len()], 16);
     match color_parse_result {
+        Ok(_t) => true,
+        Err(_e) => false
+    }
+}
+
+fn is_valid_eye_color(color: &str) -> bool {
+    match color {
+        "amb" | "blu" | "brn" | "gry" | "grn" | "hzl" | "oth" => true,
+        _ => false
+    }
+}
+
+fn is_valid_passport_id(identifier: &str) -> bool {
+    if !identifier.len() == 9 {
+        return false;
+    }
+
+    let number_result = identifier.parse::<usize>();
+    match number_result {
         Ok(_t) => true,
         Err(_e) => false
     }
