@@ -1,5 +1,5 @@
 use std::fs;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 fn main() {
     let lines = read_lines("input.txt");
@@ -12,10 +12,6 @@ fn main() {
     let everyone_score = everyone_answers_total_score(everyone_group_answers);
 
     println!("Everyone answers total score: {}", everyone_score);
-
-    let raw = fs::read_to_string("input.txt").unwrap();
-    let cheat = solve2(&raw);
-    println!("{:?}", cheat);
 }
 
 fn everyone_answers_total_score(everyone_group_answers: Vec<usize>) -> usize {
@@ -88,8 +84,13 @@ fn get_everyone_group_answers(lines: Vec<String>) -> Vec<usize> {
         }
     }
     // Add the last group
-    let max: &usize = one_group.values().max().unwrap();
-    group_scores.push(max.to_owned());
+    let mut score = 0;
+    for &num_answers in one_group.values() {
+        if num_answers == num_group_members {
+            score += 1;
+        }
+    }
+    group_scores.push(score.to_owned());
 
     group_scores
 }
@@ -102,30 +103,6 @@ fn get_anyone_answers_score(grouped_answers: Vec<String>) -> usize {
     }
 
     score
-}
-
-// Stolen from https://github.com/Lakret/aoc2020/blob/master/src/d6.rs#L19
-// Couldn't solve the puzzle, was off by 3, no idea why.
-pub fn solve2(input: &str) -> Option<i64> {
-    let sum_of_counts = input
-        .trim_end()
-        .split("\n\n")
-        .map(|group| {
-            let answers_per_person = group
-                .split_ascii_whitespace()
-                .map(|person| person.chars().collect::<HashSet<_>>())
-                .collect::<Vec<_>>();
-
-            answers_per_person
-                .iter()
-                .fold(answers_per_person[0].clone(), |all_yes, persons_answers| {
-                    all_yes.intersection(persons_answers).cloned().collect()
-                })
-                .len() as i64
-        })
-        .sum();
-
-    Some(sum_of_counts)
 }
 
 #[cfg(test)]
