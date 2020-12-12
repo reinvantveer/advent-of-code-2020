@@ -2,6 +2,8 @@ extern crate petgraph;
 
 use std::fs;
 use std::collections::HashMap;
+use petgraph::{Graph, Directed};
+use petgraph::visit::NodeIndexable;
 
 struct BagRule {
     bag_type: String,
@@ -27,10 +29,17 @@ fn read_lines(path: &str) -> Vec<String> {
     lines
 }
 
-fn parse_graph(lines: Vec<String>) {
+fn parse_graph(lines: Vec<String>) -> Graph<String, String, Directed> {
+    let mut rules_graph = Graph::new();
     for line in lines {
         let parts = parse_subgraph_parts(line);
+        for key in parts.contains.keys() {
+            if !rules_graph.contains_node(key) {
+                rules_graph.add_node(key.to_string());
+            }
+        }
     }
+    rules_graph
 }
 
 fn parse_subgraph_parts(line: String) -> BagRule {
@@ -53,9 +62,9 @@ fn parse_subgraph_parts(line: String) -> BagRule {
 fn extract_subbag_rules(line_split: Vec<&str>, rule: &mut BagRule) {
     let contained: Vec<String> = line_split[1]
         .strip_suffix(".").unwrap()// Get rid of the last dot in the phrase
-        .replace(" bags", "")
-        .replace(" bag", "")
-        .split(", ")
+        .replace(" bags", "")// Get rid of all spurious "bags" references
+        .replace(" bag", "")// Get rid of all spurious "bag" references next
+        .split(", ")// Split whatever sub bags are within by comma-separated
         .map(|sub_bag| sub_bag.to_string())
         .collect();
 
@@ -89,6 +98,26 @@ mod test {
 
         let last_rule_set = parse_subgraph_parts(lines.last().unwrap().clone());
         assert_eq!(last_rule_set.bag_type, "dotted black".to_string());
+    }
+
+    #[test]
+    fn test_graph_builder() {
+        let lines = read_lines("example.txt");
+        let rules = parse_graph(lines);
+
+        let expected_nodes = vec![
+            "light red",
+            "bright white",
+            "muted yellow",
+            "dark orange",
+            "shiny gold",
+            "faded blue",
+            "dark olive",
+            "vibrant plum",
+            "dotted black",
+        ];
+
+        assert_eq!(rules.node_count(), expected_nodes.len());
     }
 
     #[test]
