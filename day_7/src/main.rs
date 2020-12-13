@@ -4,21 +4,15 @@ use std::fs;
 use std::collections::HashMap;
 use petgraph::{Graph, Directed};
 use petgraph::visit::NodeIndexable;
+use std::ops::Index;
 
 struct BagRule {
     bag_type: String,
     contains: HashMap<String, usize>
 }
 
-#[derive(Debug)]
-enum Bag {
-    Bag(Vec<Bag>),
-    String,
-}
-
 fn main() {
     println!("Hello, world!");
-    println!("woeir");
 }
 
 fn read_lines(path: &str) -> Vec<String> {
@@ -33,10 +27,31 @@ fn parse_graph(lines: Vec<String>) -> Graph<String, String, Directed> {
     let mut rules_graph = Graph::new();
     for line in lines {
         let parts = parse_subgraph_parts(line);
-        for key in parts.contains.keys() {
-            if !rules_graph.contains_node(key) {
-                rules_graph.add_node(key.to_string());
+
+        let has_node = rules_graph.node_indices().find(|i| rules_graph[*i] == parts.bag_type);
+        if has_node == None {
+            rules_graph.add_node(parts.bag_type.to_string());
+        }
+
+        for sub_bag_type in parts.contains.keys() {
+            // Add the sub-bag type if it doesn't exist yet
+            let has_node = rules_graph.node_indices().find(|i| rules_graph[*i] == *sub_bag_type);
+            if has_node == None {
+                rules_graph.add_node(sub_bag_type.to_string());
             }
+
+            // Add the edge between the bag and the sub-bag
+            let source = rules_graph
+                .node_indices()
+                .find(|i| rules_graph[*i] == *sub_bag_type)
+                .unwrap();
+
+            let target = rules_graph
+                .node_indices()
+                .find(|i| rules_graph[*i] == *sub_bag_type)
+                .unwrap();
+
+            rules_graph.add_edge(source, target, "".to_string());
         }
     }
     rules_graph
@@ -79,7 +94,8 @@ fn extract_subbag_rules(line_split: Vec<&str>, rule: &mut BagRule) {
     }
 }
 
-fn num_bags_that_contain(color: String) -> usize {
+fn num_bags_that_contain(color: String, rules: Graph<String, String>) -> usize {
+    let num_paths = Graph;
     4
 }
 
@@ -118,11 +134,14 @@ mod test {
         ];
 
         assert_eq!(rules.node_count(), expected_nodes.len());
+        assert_eq!(rules.edge_count(), 13);
     }
 
     #[test]
     fn test_correct_sample_answer() {
-        let num_bags = num_bags_that_contain("shiny gold".to_string());
+        let lines = read_lines("example.txt");
+        let rules = parse_graph(lines);
+        let num_bags = num_bags_that_contain("shiny gold".to_string(), rules);
         assert_eq!(num_bags, 4);
     }
 }
