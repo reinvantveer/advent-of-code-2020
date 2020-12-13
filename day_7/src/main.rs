@@ -2,9 +2,8 @@ extern crate petgraph;
 
 use std::fs;
 use std::collections::HashMap;
-use petgraph::{Graph, Directed};
-use petgraph::visit::NodeIndexable;
-use std::ops::Index;
+use petgraph::algo::{has_path_connecting};
+use petgraph::graph::{DiGraph};
 
 struct BagRule {
     bag_type: String,
@@ -12,7 +11,11 @@ struct BagRule {
 }
 
 fn main() {
-    println!("Hello, world!");
+    let lines = read_lines("input.txt");
+    let rules = parse_graph(lines);
+    let color_to_look_for = "shiny gold".to_string();
+    let num_colors = num_bags_that_contain(color_to_look_for.clone(), rules);
+    println!("{} bags can hold {}", num_colors, color_to_look_for);
 }
 
 fn read_lines(path: &str) -> Vec<String> {
@@ -23,8 +26,8 @@ fn read_lines(path: &str) -> Vec<String> {
     lines
 }
 
-fn parse_graph(lines: Vec<String>) -> Graph<String, String, Directed> {
-    let mut rules_graph = Graph::new();
+fn parse_graph(lines: Vec<String>) -> DiGraph<String, ()> {
+    let mut rules_graph = DiGraph::new();
     for line in lines {
         let parts = parse_subgraph_parts(line);
 
@@ -43,7 +46,7 @@ fn parse_graph(lines: Vec<String>) -> Graph<String, String, Directed> {
             // Add the edge between the bag and the sub-bag
             let source = rules_graph
                 .node_indices()
-                .find(|i| rules_graph[*i] == *sub_bag_type)
+                .find(|i| rules_graph[*i] == parts.bag_type)
                 .unwrap();
 
             let target = rules_graph
@@ -51,7 +54,7 @@ fn parse_graph(lines: Vec<String>) -> Graph<String, String, Directed> {
                 .find(|i| rules_graph[*i] == *sub_bag_type)
                 .unwrap();
 
-            rules_graph.add_edge(source, target, "".to_string());
+            rules_graph.add_edge(source, target, ());
         }
     }
     rules_graph
@@ -94,9 +97,26 @@ fn extract_subbag_rules(line_split: Vec<&str>, rule: &mut BagRule) {
     }
 }
 
-fn num_bags_that_contain(color: String, rules: Graph<String, String>) -> usize {
-    let num_paths = Graph;
-    4
+fn num_bags_that_contain(color: String, rules: DiGraph<String, ()>) -> usize {
+    let target_node =  rules
+        .node_indices()
+        .find(|i| rules[*i] == color)
+        .unwrap();
+
+    for source_node in rules.node_indices() {
+        if target_node == source_node { continue; }
+        if has_path_connecting(&rules, source_node, target_node, None) {
+            println!("{:?} connects to {:?}", &source_node, &target_node);
+        }
+    }
+
+    let num_paths: Vec<_>= rules
+        .node_indices()
+        .filter(|source_node| *source_node != target_node)
+        .filter(|source_node| has_path_connecting(&rules, *source_node, target_node, None))
+        .collect();
+
+    num_paths.len()
 }
 
 #[cfg(test)]
@@ -140,7 +160,7 @@ mod test {
     #[test]
     fn test_correct_sample_answer() {
         let lines = read_lines("example.txt");
-        let rules = parse_graph(lines);
+        let rules: DiGraph<String, ()> = parse_graph(lines);
         let num_bags = num_bags_that_contain("shiny gold".to_string(), rules);
         assert_eq!(num_bags, 4);
     }
