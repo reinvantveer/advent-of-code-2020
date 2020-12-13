@@ -2,8 +2,8 @@ extern crate petgraph;
 
 use std::fs;
 use std::collections::HashMap;
-use petgraph::algo::{has_path_connecting};
-use petgraph::graph::{DiGraph};
+use petgraph::algo::{has_path_connecting, all_simple_paths};
+use petgraph::graph::{DiGraph, NodeIndex};
 
 struct BagRule {
     bag_type: String,
@@ -60,6 +60,51 @@ fn parse_graph(lines: Vec<String>) -> DiGraph<String, ()> {
     rules_graph
 }
 
+fn parse_hypergraph(lines: Vec<String>) -> DiGraph<String, ()> {
+    let mut rules_hypergraph = DiGraph::new();
+
+    for line in lines {
+        let ruleset = parse_subgraph_parts(line);
+
+        let has_node = rules_hypergraph
+            .node_indices()
+            .find(|i| rules_hypergraph[*i] == ruleset.bag_type);
+
+        // Add the node if it doesn't yet exist
+        if has_node == None {
+            rules_hypergraph.add_node(ruleset.bag_type.to_string());
+        }
+
+        for (sub_bag_type, number) in &ruleset.contains {
+            // Add the sub-bag type if it doesn't exist yet
+            let has_node = rules_hypergraph
+                .node_indices()
+                .find(|i| rules_hypergraph[*i] == *sub_bag_type);
+
+            // Add the node if it doesn't yet exist
+            if has_node == None {
+                rules_hypergraph.add_node(sub_bag_type.to_string());
+            }
+
+            // Add the edge between the bag and the sub-bag
+            let source = rules_hypergraph
+                .node_indices()
+                .find(|i| rules_hypergraph[*i] == ruleset.bag_type)
+                .unwrap();
+
+            let target = rules_hypergraph
+                .node_indices()
+                .find(|i| rules_hypergraph[*i] == *sub_bag_type)
+                .unwrap();
+
+            for _ in 0..*number {
+                rules_hypergraph.add_edge(source, target, ());
+            }
+        }
+    }
+    rules_hypergraph
+}
+
 fn parse_subgraph_parts(line: String) -> BagRule {
     let line_split: Vec<&str> = line.split(" bags contain ").collect();
     let bag_type = line_split[0];
@@ -98,10 +143,7 @@ fn extract_subbag_rules(line_split: Vec<&str>, rule: &mut BagRule) {
 }
 
 fn num_bags_that_contain(color: String, rules: DiGraph<String, ()>) -> usize {
-    let target_node =  rules
-        .node_indices()
-        .find(|i| rules[*i] == color)
-        .unwrap();
+    let target_node = get_node_idx(color, &rules);
 
     for source_node in rules.node_indices() {
         if target_node == source_node { continue; }
@@ -117,6 +159,31 @@ fn num_bags_that_contain(color: String, rules: DiGraph<String, ()>) -> usize {
         .collect();
 
     num_paths.len()
+}
+
+fn get_node_idx(color: String, rules: &DiGraph<String, ()>) -> NodeIndex<u32> {
+    let node_idx = rules
+        .node_indices()
+        .find(|i| rules[*i] == color)
+        .unwrap();
+
+    node_idx
+}
+
+fn num_bags_containing<TargetColl, G>(color: String, rules: DiGraph<String, ()>) -> usize {
+    let source_idx = get_node_idx(color, &rules);
+
+    let mut total_num_paths = 0;
+
+    for target_idx in rules.node_indices() {
+        if source_idx == target_idx { continue; }
+        let paths = all_simple_paths::<TargetColl, &G>(&rules, source_idx, target_idx, 0, None);
+        {
+            total_num_paths += 1;
+        }
+    }
+
+    total_num_paths
 }
 
 #[cfg(test)]
@@ -158,10 +225,18 @@ mod test {
     }
 
     #[test]
-    fn test_correct_sample_answer() {
+    fn test_correct_sample_answer_part_1() {
         let lines = read_lines("example.txt");
-        let rules: DiGraph<String, ()> = parse_graph(lines);
+        let rules = parse_graph(lines);
         let num_bags = num_bags_that_contain("shiny gold".to_string(), rules);
         assert_eq!(num_bags, 4);
+    }
+
+    #[test]
+    fn test_correct_answer_part_2() {
+        let lines = read_lines("example2.txt");
+        let rules = parse_hypergraph(lines);
+        let num_bags = num_bags_containing("shiny gold".to_string(), rules);
+        assert_eq!(num_bags, 126);
     }
 }
