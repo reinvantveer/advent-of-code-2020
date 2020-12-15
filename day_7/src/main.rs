@@ -2,9 +2,8 @@ extern crate petgraph;
 
 use std::fs;
 use std::collections::{HashMap, HashSet};
-use petgraph::algo::{has_path_connecting, all_simple_paths};
+use petgraph::algo::{has_path_connecting, all_simple_paths, astar, dijkstra};
 use petgraph::graph::{DiGraph, NodeIndex};
-use petgraph::{Graph, Directed};
 
 struct BagRule {
     bag_type: String,
@@ -61,7 +60,7 @@ fn parse_graph(lines: Vec<String>) -> DiGraph<String, usize> {
     rules_graph
 }
 
-fn parse_hypergraph(lines: Vec<String>) -> Graph<String, usize, Directed, u32> {
+fn parse_hypergraph(lines: Vec<String>) -> DiGraph<String, usize> {
     let mut rules_hypergraph = DiGraph::new();
 
     for line in lines {
@@ -173,24 +172,48 @@ fn get_node_idx(color: String, rules: &DiGraph<String, usize>) -> NodeIndex<u32>
 
 fn num_bags_containing(color: String, rules: DiGraph<String, usize>) -> usize {
     let source_idx = get_node_idx(color, &rules);
-
     let mut total_num_paths = 0;
+
+    let leaf_node_ids = get_leaf_nodes(&rules);
+
+    let all_paths = dijkstra(&rules, source_idx, None, |e| *e.weight());
 
     for target_idx in rules.node_indices() {
         if source_idx == target_idx { continue; }
+        let has_path =
+            astar(&rules,
+                  source_idx,
+                  |finish| finish == target_idx,
+                  |e| *e.weight(),
+                  |_| 0);
+
         let paths: HashSet<Vec<_>> =
             all_simple_paths(&rules, source_idx, target_idx, 0, None)
-                .map(|v: Vec<_>| v.into_iter().map(|i| i.index()).collect())
+                .map(|v: Vec<_>| {
+                    v.into_iter().map(|i| i.index()).collect()
+                })
                 .collect();
+
         total_num_paths += paths.len();
     }
 
     total_num_paths
 }
 
+fn get_leaf_nodes(rules: &DiGraph<String, usize>) -> Vec<NodeIndex<u32>> {
+    let leaf_node_indices: Vec<_> = rules
+        .node_indices()
+        .filter(|potential_leaf| rules.edges(*potential_leaf).collect::<Vec<_>>().len() == 0)
+        .collect();
+    leaf_node_indices
+}
+
+
+
 #[cfg(test)]
 mod test {
     use super::*;
+    use petgraph::graph::node_index;
 
     #[test]
     fn test_line_parser() {
@@ -235,9 +258,18 @@ mod test {
     }
 
     #[test]
+    fn test_leaf_nodes() {
+        let lines = read_lines("example2.txt");
+        let rules = parse_graph(lines);
+        let leaf_node_indices = get_leaf_nodes(&rules);
+
+        assert_eq!(leaf_node_indices, vec![get_node_idx("dark violet".to_string(), &rules)]);
+    }
+
+    #[test]
     fn test_correct_answer_part_2() {
         let lines = read_lines("example2.txt");
-        let rules = parse_hypergraph(lines);
+        let rules = parse_graph(lines);
         let num_bags = num_bags_containing("shiny gold".to_string(), rules);
         assert_eq!(num_bags, 126);
     }
