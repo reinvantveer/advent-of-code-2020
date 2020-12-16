@@ -100,13 +100,6 @@ fn extract_subbag_rules(line_split: Vec<&str>, rule: &mut BagRule) {
 fn num_bags_that_contain(color: String, rules: DiGraph<String, usize>) -> usize {
     let target_node = get_node_idx(color, &rules);
 
-    for source_node in rules.node_indices() {
-        if target_node == source_node { continue; }
-        if has_path_connecting(&rules, source_node, target_node, None) {
-            println!("{:?} connects to {:?}", &source_node, &target_node);
-        }
-    }
-
     let num_paths: Vec<_>= rules
         .node_indices()
         .filter(|source_node| *source_node != target_node)
