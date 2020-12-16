@@ -7,7 +7,7 @@ use petgraph::graph::{DiGraph, NodeIndex};
 
 struct BagRule {
     bag_type: String,
-    contains: HashMap<String, usize>
+    must_contain: HashMap<String, usize>
 }
 
 fn main() {
@@ -39,7 +39,7 @@ fn parse_graph(lines: Vec<String>) -> DiGraph<String, usize> {
             rules_graph.add_node(parts.bag_type.to_string());
         }
 
-        for (sub_bag_type, num) in &parts.contains {
+        for (sub_bag_type, num) in &parts.must_contain {
             // Add the sub-bag type if it doesn't exist yet
             let has_node = rules_graph.node_indices().find(|i| rules_graph[*i] == *sub_bag_type);
             if has_node == None {
@@ -69,7 +69,7 @@ fn parse_subgraph_parts(line: String) -> BagRule {
 
     let mut rule = BagRule {
         bag_type: (*bag_type.to_string()).parse().unwrap(),
-        contains: Default::default()
+        must_contain: Default::default()
     };
 
     match line_split[1].contains("no other bags") {
@@ -96,7 +96,7 @@ fn extract_subbag_rules(line_split: Vec<&str>, rule: &mut BagRule) {
             .map(|part| part.to_string())
             .collect::<Vec<String>>().join(" ");
 
-        rule.contains.insert(sub_bag_type, num);
+        rule.must_contain.insert(sub_bag_type, num);
     }
 }
 
@@ -154,7 +154,9 @@ fn num_bags_containing(color: String, rules: DiGraph<String, usize>) -> usize {
             let new_count = weight * previous_bag_count;
             total_num_bags += new_count;
 
+            // Update the previous count with the new one for this edge
             previous_bag_count = new_count;
+            // Add the edge to
             visited_edges.insert(edge);
         }
     }
@@ -181,8 +183,8 @@ mod test {
         let parts1 = parse_subgraph_parts(lines[0].clone());
 
         assert_eq!(parts1.bag_type, "light red".to_string());
-        assert_eq!(*parts1.contains.get("bright white").unwrap(), 1 as usize);
-        assert_eq!(*parts1.contains.get("muted yellow").unwrap(), 2 as usize);
+        assert_eq!(*parts1.must_contain.get("bright white").unwrap(), 1 as usize);
+        assert_eq!(*parts1.must_contain.get("muted yellow").unwrap(), 2 as usize);
 
         let last_rule_set = parse_subgraph_parts(lines.last().unwrap().clone());
         assert_eq!(last_rule_set.bag_type, "dotted black".to_string());
