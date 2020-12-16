@@ -2,7 +2,7 @@ extern crate petgraph;
 
 use std::fs;
 use std::collections::{HashMap, HashSet};
-use petgraph::algo::{has_path_connecting, all_simple_paths, astar, dijkstra};
+use petgraph::algo::{has_path_connecting, astar};
 use petgraph::graph::{DiGraph, NodeIndex};
 
 struct BagRule {
@@ -58,51 +58,6 @@ fn parse_graph(lines: Vec<String>) -> DiGraph<String, usize> {
         }
     }
     rules_graph
-}
-
-fn parse_hypergraph(lines: Vec<String>) -> DiGraph<String, usize> {
-    let mut rules_hypergraph = DiGraph::new();
-
-    for line in lines {
-        let ruleset = parse_subgraph_parts(line);
-
-        let has_node = rules_hypergraph
-            .node_indices()
-            .find(|i| rules_hypergraph[*i] == ruleset.bag_type);
-
-        // Add the node if it doesn't yet exist
-        if has_node == None {
-            rules_hypergraph.add_node(ruleset.bag_type.to_string());
-        }
-
-        for (sub_bag_type, number) in &ruleset.contains {
-            // Add the sub-bag type if it doesn't exist yet
-            let has_node = rules_hypergraph
-                .node_indices()
-                .find(|i| rules_hypergraph[*i] == *sub_bag_type);
-
-            // Add the node if it doesn't yet exist
-            if has_node == None {
-                rules_hypergraph.add_node(sub_bag_type.to_string());
-            }
-
-            // Add the edge between the bag and the sub-bag
-            let source = rules_hypergraph
-                .node_indices()
-                .find(|i| rules_hypergraph[*i] == ruleset.bag_type)
-                .unwrap();
-
-            let target = rules_hypergraph
-                .node_indices()
-                .find(|i| rules_hypergraph[*i] == *sub_bag_type)
-                .unwrap();
-
-            for item in 0..*number {
-                rules_hypergraph.add_edge(source, target, item);
-            }
-        }
-    }
-    rules_hypergraph
 }
 
 fn parse_subgraph_parts(line: String) -> BagRule {
@@ -171,33 +126,41 @@ fn get_node_idx(color: String, rules: &DiGraph<String, usize>) -> NodeIndex<u32>
 }
 
 fn num_bags_containing(color: String, rules: DiGraph<String, usize>) -> usize {
-    let source_idx = get_node_idx(color, &rules);
-    let mut total_num_paths = 0;
-
+    let shiny_gold = get_node_idx(color, &rules);
     let leaf_node_ids = get_leaf_nodes(&rules);
 
-    let all_paths = dijkstra(&rules, source_idx, None, |e| *e.weight());
+    let mut total_num_bags = 0;
+    let mut visited_edges  = HashSet::new();
 
-    for target_idx in rules.node_indices() {
-        if source_idx == target_idx { continue; }
-        let has_path =
+    for leaf in leaf_node_ids {
+        let (_, path): (usize, Vec<NodeIndex>) =
             astar(&rules,
-                  source_idx,
-                  |finish| finish == target_idx,
-                  |e| *e.weight(),
-                  |_| 0);
+                  shiny_gold,
+                  |finish| finish == leaf,
+                  |_| 1,
+                  |_| 0).unwrap();
 
-        let paths: HashSet<Vec<_>> =
-            all_simple_paths(&rules, source_idx, target_idx, 0, None)
-                .map(|v: Vec<_>| {
-                    v.into_iter().map(|i| i.index()).collect()
-                })
-                .collect();
+        let mut previous_bag_count = 1;  // We always start with one bag: the shiny gold one
+        for (idx, node) in path[1..].iter().enumerate() {
+            let edge = rules.find_edge(
+                // This is slightly weird, iterating over path[1..]: this is actually the previous node
+                path[idx],
+                *node
+            ).unwrap();
 
-        total_num_paths += paths.len();
+            // Skip if we already did this edge
+            if visited_edges.contains(&edge) { continue; }
+
+            // Otherwise: add the count
+            let weight = rules.edge_weight(edge).unwrap();
+            let new_count = *weight * previous_bag_count;
+            previous_bag_count = new_count;
+            total_num_bags += new_count;
+
+            visited_edges.insert(edge);
+        }
     }
-
-    total_num_paths
+    total_num_bags
 }
 
 fn get_leaf_nodes(rules: &DiGraph<String, usize>) -> Vec<NodeIndex<u32>> {
@@ -213,7 +176,6 @@ fn get_leaf_nodes(rules: &DiGraph<String, usize>) -> Vec<NodeIndex<u32>> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use petgraph::graph::node_index;
 
     #[test]
     fn test_line_parser() {
