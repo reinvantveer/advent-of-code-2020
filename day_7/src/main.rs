@@ -14,8 +14,11 @@ fn main() {
     let lines = read_lines("input.txt");
     let rules = parse_graph(lines);
     let color_to_look_for = "shiny gold".to_string();
-    let num_colors = num_bags_that_contain(color_to_look_for.clone(), rules);
-    println!("{} bags can hold {}", num_colors, color_to_look_for);
+    let num_colors = num_bags_that_contain(color_to_look_for.clone(), rules.clone());
+    println!("{} bags can hold {}", &num_colors, &color_to_look_for);
+
+    let bags_total = num_bags_containing(color_to_look_for.clone(), rules);
+    println!("{} contains {} total number of bags ", &color_to_look_for, &bags_total);
 }
 
 fn read_lines(path: &str) -> Vec<String> {
@@ -133,7 +136,9 @@ fn num_bags_containing(color: String, rules: DiGraph<String, usize>) -> usize {
                   |_| 1,
                   |_| 0).unwrap();
 
-        let mut previous_bag_count = 1;  // We always start with one bag: the shiny gold one
+        // We always start with one bag: the shiny gold one
+        let mut previous_bag_count = 1;
+
         for (idx, node) in path[1..].iter().enumerate() {
             let edge = rules.find_edge(
                 // This is slightly weird, iterating over path[1..]: this is actually the previous node
@@ -145,11 +150,11 @@ fn num_bags_containing(color: String, rules: DiGraph<String, usize>) -> usize {
             if visited_edges.contains(&edge) { continue; }
 
             // Otherwise: add the count
-            let weight = rules.edge_weight(edge).unwrap();
-            let new_count = *weight * previous_bag_count;
-            previous_bag_count = new_count;
+            let weight = *rules.edge_weight(edge).unwrap();
+            let new_count = weight * previous_bag_count;
             total_num_bags += new_count;
 
+            previous_bag_count = new_count;
             visited_edges.insert(edge);
         }
     }
