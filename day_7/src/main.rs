@@ -4,6 +4,7 @@ use std::fs;
 use std::collections::{HashMap, HashSet};
 use petgraph::algo::{has_path_connecting, astar};
 use petgraph::graph::{DiGraph, NodeIndex};
+use petgraph::visit::EdgeRef;
 
 struct BagRule {
     bag_type: String,
@@ -121,8 +122,28 @@ fn get_node_idx(color: String, rules: &DiGraph<String, usize>) -> NodeIndex<u32>
     node_idx
 }
 
+fn recurse_count_to_connected_nodes(
+    node: NodeIndex,
+    rules: &DiGraph<String, usize>,
+    mut count: usize
+) -> usize {
+    let outgoing_edges = rules.edges(node);
+    let old_count = count.clone();
+
+    for edge in outgoing_edges {
+        let weight = *edge.weight();
+        let connected_node = edge.target();
+        count += weight * old_count;
+        count += recurse_count_to_connected_nodes(connected_node, rules, old_count);
+        println!("{:?} new total count", old_count);
+    }
+
+    println!("{} count", count);
+    count
+}
+
 fn num_bags_containing(color: String, rules: DiGraph<String, usize>) -> usize {
-    let shiny_gold = get_node_idx(color, &rules);
+    let start_node = get_node_idx(color, &rules);
     let leaf_node_ids = get_leaf_nodes(&rules);
 
     let mut total_num_bags = 0;
@@ -131,7 +152,7 @@ fn num_bags_containing(color: String, rules: DiGraph<String, usize>) -> usize {
     for leaf in leaf_node_ids {
         let (_, path): (usize, Vec<NodeIndex>) =
             astar(&rules,
-                  shiny_gold,
+                  start_node,
                   |finish| finish == leaf,
                   |_| 1,
                   |_| 0).unwrap();
@@ -170,7 +191,6 @@ fn get_leaf_nodes(rules: &DiGraph<String, usize>) -> Vec<NodeIndex<u32>> {
         .collect();
     leaf_node_indices
 }
-
 
 
 #[cfg(test)]
@@ -234,5 +254,15 @@ mod test {
         let rules = parse_graph(lines);
         let num_bags = num_bags_containing("shiny gold".to_string(), rules);
         assert_eq!(num_bags, 126);
+
+        let lines = read_lines("example.txt");
+        let rules = parse_graph(lines);
+        let start_node = get_node_idx("light red".to_string(), &rules);
+        let num_bags = recurse_count_to_connected_nodes(
+            start_node,
+            &rules,
+            1,
+        );
+        assert_eq!(num_bags, 186);
     }
 }
