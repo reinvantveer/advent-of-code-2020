@@ -128,17 +128,19 @@ fn recurse_count_to_connected_nodes(
     mut count: usize
 ) -> usize {
     let outgoing_edges = rules.edges(node);
-    let old_count = count.clone();
+    println!("{} current count", count);
 
     for edge in outgoing_edges {
         let weight = *edge.weight();
         let connected_node = edge.target();
-        count += weight * old_count;
-        count += recurse_count_to_connected_nodes(connected_node, rules, old_count);
-        println!("{:?} new total count", old_count);
+        let extra_bags = weight * count;
+        let extra_bags_within = recurse_count_to_connected_nodes(connected_node, rules, count + extra_bags);
+        count += extra_bags;
+        count += extra_bags_within;
+        println!("{:?} new total count", count);
     }
 
-    println!("{} count", count);
+    println!("{} total count", count);
     count
 }
 
