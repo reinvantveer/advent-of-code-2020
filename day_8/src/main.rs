@@ -4,11 +4,33 @@ use std::collections::HashSet;
 fn main() {
     let lines = read_lines("input.txt");
     let instructions = parse_instructions(&lines);
-    let acc = run_code_until_already_executed(instructions);
+    let (acc, _) = run_code_until_already_executed(instructions);
+
+    println!("Accumulator after broken loop: {}", acc);
+
+    let instructions = parse_instructions(&lines);
+
+    for (idx, instruction) in instructions.iter().enumerate() {
+        if instruction.operation != "jmp" || instruction.operation != "nop" { continue };
+
+        let mut new_instructions = parse_instructions(&lines);  // Reset
+        new_instructions[idx].operation = match instruction.operation.as_str() {
+            "jmp" => "nop",  // Switch instruction type
+            "nop" => "jmp",
+            _ => unreachable!()
+        }.to_string();
+
+        let (acc, terminated_normally) = run_code_until_already_executed(new_instructions);
+        if terminated_normally {
+            println!("Program terminated successfully, bug fixed! Accumulator: {}", acc);
+            return;
+        }
+    }
 
     println!("Accumulator: {}", acc);
 }
 
+#[derive(Clone)]
 struct Instruction {
     operation: String,
     amount: isize
@@ -39,7 +61,7 @@ fn parse_instruction(line: &String) -> Instruction {
     }
 }
 
-fn run_code_until_already_executed(instructions: Vec<Instruction>) -> isize {
+fn run_code_until_already_executed(instructions: Vec<Instruction>) -> (isize, bool) {
     let mut already_executed = HashSet::new();
     let mut program_counter = 0 as isize;
     let mut accumulator = 0 as isize;
@@ -60,9 +82,15 @@ fn run_code_until_already_executed(instructions: Vec<Instruction>) -> isize {
 
         already_executed.insert(program_counter);
         program_counter += 1;
+
+        if program_counter as usize == instructions.len() {
+            println!("Program terminated normally with accumulator {}", accumulator);
+            return (accumulator, true)
+        }
     }
 
-    accumulator
+    println!("Program terminated after re-visited instruction. Accumulator: {}", accumulator);
+    (accumulator, false)
 }
 
 #[cfg(test)]
