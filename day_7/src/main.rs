@@ -164,7 +164,7 @@ fn recurse_count_to_connected_nodes(
         extra_bags_within += bags_within;
     }
 
-    let new_count = count + extra_bags + extra_bags_within;
+    let new_count = extra_bags + extra_bags_within;
     println!("{} total new count", new_count);
     new_count
 }
