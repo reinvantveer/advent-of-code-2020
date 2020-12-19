@@ -2,7 +2,11 @@ use std::fs;
 use std::collections::HashSet;
 
 fn main() {
-    println!("Hello, world!");
+    let lines = read_lines("input.txt");
+    let instructions = parse_instructions(&lines);
+    let acc = run_code_until_already_executed(instructions);
+
+    println!("Accumulator: {}", acc);
 }
 
 struct Instruction {
@@ -37,7 +41,7 @@ fn parse_instruction(line: &String) -> Instruction {
 
 fn run_code_until_already_executed(instructions: Vec<Instruction>) -> isize {
     let mut already_executed = HashSet::new();
-    let mut program_counter = 0;
+    let mut program_counter = 0 as isize;
     let mut accumulator = 0 as isize;
 
     loop {
@@ -45,7 +49,15 @@ fn run_code_until_already_executed(instructions: Vec<Instruction>) -> isize {
             println!("End of loop detected: {} already visited", &program_counter);
             break;
         }
-        let instruction = &instructions[program_counter];
+        let instruction = &instructions[program_counter as usize];
+
+        match instruction.operation.as_str() {
+            "nop" => (),
+            "acc" => accumulator += instruction.amount,
+            "jmp" => program_counter += instruction.amount - 1, // We auto-increment the pc after
+            _ => unreachable!(format!("Unknown opcode {}", instruction.operation))
+        }
+
         already_executed.insert(program_counter);
         program_counter += 1;
     }
