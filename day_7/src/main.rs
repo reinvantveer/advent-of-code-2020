@@ -169,48 +169,6 @@ fn recurse_count_to_connected_nodes(
     new_count
 }
 
-fn num_bags_containing(color: String, rules: DiGraph<String, usize>) -> usize {
-    let start_node = get_node_idx(color, &rules);
-    let leaf_node_ids = get_leaf_nodes(&rules);
-
-    let mut total_num_bags = 0;
-    let mut visited_edges  = HashSet::new();
-
-    for leaf in leaf_node_ids {
-        let (_, path): (usize, Vec<NodeIndex>) =
-            astar(&rules,
-                  start_node,
-                  |finish| finish == leaf,
-                  |_| 1,
-                  |_| 0).unwrap();
-
-        // We always start with one bag: the shiny gold one
-        let mut previous_bag_count = 1;
-
-        for (idx, node) in path[1..].iter().enumerate() {
-            let edge = rules.find_edge(
-                // This is slightly weird, iterating over path[1..]: this is actually the previous node
-                path[idx],
-                *node
-            ).unwrap();
-
-            // Skip if we already did this edge
-            if visited_edges.contains(&edge) { continue; }
-
-            // Otherwise: add the count
-            let weight = *rules.edge_weight(edge).unwrap();
-            let new_count = weight * previous_bag_count;
-            total_num_bags += new_count;
-
-            // Update the previous count with the new one for this edge
-            previous_bag_count = new_count;
-            // Add the edge to
-            visited_edges.insert(edge);
-        }
-    }
-    total_num_bags
-}
-
 fn get_leaf_nodes(rules: &DiGraph<String, usize>) -> Vec<NodeIndex<u32>> {
     let leaf_node_indices: Vec<_> = rules
         .node_indices()
@@ -279,7 +237,8 @@ mod test {
     fn test_correct_answer_part_2() {
         let lines = read_lines("example2.txt");
         let rules = parse_graph(lines);
-        let num_bags = num_bags_containing("shiny gold".to_string(), rules);
+        let start_node = get_node_idx("shiny gold".to_string(), &rules);
+        let num_bags = recurse_count_to_connected_nodes(start_node, &rules, 1);
         assert_eq!(num_bags, 126);
 
         let lines = read_lines("example.txt");
