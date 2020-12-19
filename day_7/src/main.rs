@@ -226,7 +226,7 @@ mod test {
 
     #[test]
     fn test_leaf_nodes() {
-        let lines = read_lines("example2.txt");
+        let lines = read_lines("example2-2.txt");
         let rules = parse_graph(lines);
         let leaf_node_indices = get_leaf_nodes(&rules);
 
@@ -235,7 +235,7 @@ mod test {
 
     #[test]
     fn test_correct_answer_part_2() {
-        let lines = read_lines("example2.txt");
+        let lines = read_lines("example2-2.txt");
         let rules = parse_graph(lines);
         let start_node = get_node_idx("shiny gold".to_string(), &rules);
         let num_bags = recurse_count_to_connected_nodes(start_node, &rules, 1);
