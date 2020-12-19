@@ -148,13 +148,12 @@ fn recurse_count_to_connected_nodes(
     let mut extra_bags_within= 0;
 
     for edge in outgoing_edges {
-        let weight = *edge.weight();
         let connected_node = edge.target();
 
         let target_node_name = get_node_name(&connected_node, &rules);
         let source_node_name = get_node_name(&edge.source(), &rules);
 
-        let num_bags = weight * count;
+        let num_bags = *edge.weight() * count;
         extra_bags += num_bags;
         println!("{} {} bags directly contain {} {} bag(s)",
                  &count, &source_node_name, &extra_bags, &target_node_name);
