@@ -11,7 +11,7 @@ fn main() {
     let instructions = parse_instructions(&lines);
 
     for (idx, instruction) in instructions.iter().enumerate() {
-        if instruction.operation != "jmp" || instruction.operation != "nop" { continue };
+        if instruction.operation != "jmp" && instruction.operation != "nop" { continue };
 
         let mut new_instructions = parse_instructions(&lines);  // Reset
         new_instructions[idx].operation = match instruction.operation.as_str() {
