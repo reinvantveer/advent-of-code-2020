@@ -18,7 +18,8 @@ fn main() {
     let num_colors = num_bags_that_contain(color_to_look_for.clone(), rules.clone());
     println!("{} bags can hold {}", &num_colors, &color_to_look_for);
 
-    let bags_total = num_bags_containing(color_to_look_for.clone(), rules);
+    let start_node = get_node_idx(color_to_look_for.clone(), &rules);
+    let bags_total = recurse_count_to_connected_nodes(start_node, &rules, 1);
     println!("{} contains {} total number of bags ", &color_to_look_for, &bags_total);
 }
 
@@ -122,26 +123,50 @@ fn get_node_idx(color: String, rules: &DiGraph<String, usize>) -> NodeIndex<u32>
     node_idx
 }
 
+fn get_node_name(node_id: &NodeIndex, rules: &DiGraph<String, usize>) -> String {
+    let nodes = rules
+        .raw_nodes()
+        .iter();
+
+    for node in nodes {
+        if get_node_idx((*node.weight).to_string(), &rules) == *node_id {
+            return (*node.weight).to_string()
+        }
+    }
+
+    unreachable!("Unable to find node");
+}
+
 fn recurse_count_to_connected_nodes(
     node: NodeIndex,
     rules: &DiGraph<String, usize>,
-    mut count: usize
+    count: usize
 ) -> usize {
     let outgoing_edges = rules.edges(node);
-    println!("{} current count", count);
+
+    let mut extra_bags = 0;
+    let mut extra_bags_within= 0;
 
     for edge in outgoing_edges {
         let weight = *edge.weight();
         let connected_node = edge.target();
-        let extra_bags = weight * count;
-        let extra_bags_within = recurse_count_to_connected_nodes(connected_node, rules, count + extra_bags);
-        count += extra_bags;
-        count += extra_bags_within;
-        println!("{:?} new total count", count);
+
+        let target_node_name = get_node_name(&connected_node, &rules);
+        let source_node_name = get_node_name(&edge.source(), &rules);
+
+        let num_bags = weight * count;
+        extra_bags += num_bags;
+        println!("{} {} bags directly contain {} {} bag(s)",
+                 &count, &source_node_name, &extra_bags, &target_node_name);
+
+        let bags_within = recurse_count_to_connected_nodes(connected_node, rules, num_bags);
+        println!("{} bags returned from within {}", &bags_within, &target_node_name);
+        extra_bags_within += bags_within;
     }
 
-    println!("{} total count", count);
-    count
+    let new_count = count + extra_bags + extra_bags_within;
+    println!("{} total new count", new_count);
+    new_count
 }
 
 fn num_bags_containing(color: String, rules: DiGraph<String, usize>) -> usize {
@@ -266,5 +291,15 @@ mod test {
             1,
         );
         assert_eq!(num_bags, 186);
+    }
+
+    #[test]
+    fn test_node_name() {
+        let lines = read_lines("example.txt");
+        let rules = parse_graph(lines);
+
+        let expected_name = "light red".to_string();
+        let node_id = get_node_idx(expected_name.clone(), &rules);
+        assert_eq!(get_node_name(&node_id, &rules), expected_name);
     }
 }
