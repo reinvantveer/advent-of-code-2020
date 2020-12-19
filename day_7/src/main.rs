@@ -1,8 +1,8 @@
 extern crate petgraph;
 
 use std::fs;
-use std::collections::{HashMap, HashSet};
-use petgraph::algo::{has_path_connecting, astar};
+use std::collections::HashMap;
+use petgraph::algo::has_path_connecting;
 use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::EdgeRef;
 
