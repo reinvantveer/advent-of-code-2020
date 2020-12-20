@@ -79,8 +79,18 @@ fn partial_cartesian<T: Clone>(a: Vec<Vec<T>>, b: &[T]) -> Vec<Vec<T>> {
 }
 
 fn get_contiguous_sum_range(numbers: &Vec<usize>, sum: usize) -> (usize, usize) {
-    for (num_idx, num) in numbers.iter().enumerate() {
+    for (first_idx, num) in numbers.iter().enumerate() {
+        let mut last_idx = 0;
+        let mut slice_sum = 0;
 
+        while slice_sum < sum && last_idx < numbers.len(){
+            slice_sum += num;
+
+            if slice_sum == sum {  // The sum was found!
+                return (first_idx, last_idx)
+            }
+            last_idx += 1;
+        }
     }
     (0, 0)
 }
