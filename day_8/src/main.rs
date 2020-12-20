@@ -10,24 +10,33 @@ fn main() {
 
     let instructions = parse_instructions(&lines);
 
+    let acc = run_to_completion(&lines, instructions).unwrap();
+
+    println!("Accumulator: {}", acc);
+}
+
+fn run_to_completion(lines: &Vec<String>, instructions: Vec<Instruction>) -> Option<isize> {
     for (idx, instruction) in instructions.iter().enumerate() {
-        if instruction.operation != "jmp" && instruction.operation != "nop" { continue };
+        // No need to tinker if it's not either a jmp or nop instruction
+        if !["jmp", "nop"].contains(&&*instruction.operation) { continue; };
 
         let mut new_instructions = parse_instructions(&lines);  // Reset
-        new_instructions[idx].operation = match instruction.operation.as_str() {
+        let swapped = match instruction.operation.as_str() {
             "jmp" => "nop",  // Switch instruction type
             "nop" => "jmp",
             _ => unreachable!()
         }.to_string();
 
+        assert_ne!(swapped, instruction.operation);
+        new_instructions[idx].operation = swapped;
+
         let (acc, terminated_normally) = run_code_until_already_executed(new_instructions);
         if terminated_normally {
             println!("Program terminated successfully, bug fixed! Accumulator: {}", acc);
-            return;
+            return Some(acc);
         }
     }
-
-    println!("Accumulator: {}", acc);
+    return None;
 }
 
 #[derive(Clone)]
@@ -68,9 +77,14 @@ fn run_code_until_already_executed(instructions: Vec<Instruction>) -> (isize, bo
 
     loop {
         if already_executed.contains(&program_counter) {
-            println!("End of loop detected: {} already visited", &program_counter);
-            break;
+            println!("Infinite loop detected: {} already visited", &program_counter);
+            println!("Program terminated after re-visited instruction. Accumulator: {}", accumulator);
+            return (accumulator, false);
         }
+
+        // Update the set of already visited instructions with the current one
+        already_executed.insert(program_counter);
+
         let instruction = &instructions[program_counter as usize];
 
         match instruction.operation.as_str() {
@@ -80,7 +94,6 @@ fn run_code_until_already_executed(instructions: Vec<Instruction>) -> (isize, bo
             _ => unreachable!(format!("Unknown opcode {}", instruction.operation))
         }
 
-        already_executed.insert(program_counter);
         program_counter += 1;
 
         if program_counter as usize == instructions.len() {
@@ -88,14 +101,11 @@ fn run_code_until_already_executed(instructions: Vec<Instruction>) -> (isize, bo
             return (accumulator, true)
         }
     }
-
-    println!("Program terminated after re-visited instruction. Accumulator: {}", accumulator);
-    (accumulator, false)
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{read_lines, parse_instructions, run_code_until_already_executed};
+    use crate::{read_lines, parse_instructions, run_code_until_already_executed, run_to_completion};
 
     #[test]
     fn test_example_code_parser() {
@@ -111,8 +121,17 @@ mod test {
         let lines = read_lines("example.txt");
         let instructions = parse_instructions(&lines);
 
-        let accumulator_value = run_code_until_already_executed(instructions);
-        assert_eq!(accumulator_value, 5)
+        let (accumulator_value, normal_termination) = run_code_until_already_executed(instructions);
+        assert_eq!(accumulator_value, 5);
+        assert_eq!(normal_termination, false)
     }
 
+    #[test]
+    fn test_run_to_completion() {
+        let lines = read_lines("example.txt");
+        let instructions = parse_instructions(&lines);
+
+        let accumulator_value = run_to_completion(&lines, instructions).unwrap();
+        assert_eq!(accumulator_value, 8)
+    }
 }
