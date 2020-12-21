@@ -85,8 +85,24 @@ fn get_adapter_chain(adapters: &Vec<usize>, cur_rating: usize) -> Option<Vec<usi
     None
 }
 
-fn get_joltage_differences(_ratings: &Vec<usize>) -> (usize, usize) {
-    (0, 0)
+fn get_joltage_differences(adapter_chain: &Vec<usize>) -> (usize, usize) {
+    let diffs: Vec<_> = adapter_chain[1..]
+        .iter()
+        .enumerate()
+        .map(|(idx, adapter)| adapter - adapter_chain[idx])
+        .collect();
+
+    let diffs_1_jolt: Vec<_> = diffs
+        .iter()
+        .filter(|diff| **diff == 1 as usize)
+        .collect();
+
+    let diffs_3_jolt: Vec<_> = diffs
+        .iter()
+        .filter(|diff| **diff == 3 as usize)
+        .collect();
+
+    (diffs_1_jolt.len(), diffs_3_jolt.len())
 }
 
 #[cfg(test)]
@@ -107,8 +123,8 @@ mod test {
         let lines = read_lines("example1_1.txt");
         let adapters = lines_to_numbers(&lines);
         let chain = get_adapter_chain(&adapters, 0);
-
         let good_chain = chain.unwrap();
+
         assert_eq!(good_chain.len(), adapters.len() + 1);
         assert_eq!(good_chain, vec![1, 4, 5, 6, 7, 10, 11, 12, 15, 16, 19, 22])
     }
@@ -116,9 +132,10 @@ mod test {
     #[test]
     fn test_jolt_differences() {
         let lines = read_lines("example1_1.txt");
-        let ratings = lines_to_numbers(&lines);
-
-        let (diffs_1_jolt, diffs_3_jolt) = get_joltage_differences(&ratings);
+        let adapters = lines_to_numbers(&lines);
+        let chain = get_adapter_chain(&adapters, 0);
+        let good_chain = chain.unwrap();
+        let (diffs_1_jolt, diffs_3_jolt) = get_joltage_differences(&good_chain);
         assert_eq!(diffs_1_jolt, 7);
         assert_eq!(diffs_3_jolt, 5);
     }
