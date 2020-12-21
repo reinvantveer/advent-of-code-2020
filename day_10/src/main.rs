@@ -46,15 +46,18 @@ fn get_adapter_chain(adapters: &Vec<usize>, cur_rating: usize) -> Option<Vec<usi
 
     // Brute-force try all possible paths by iterating over candidates from adapters that can plug
     // into the parent
-    for (idx, candidate) in pluggables {
+    for (idx, candidate) in &pluggables {
+        // Show some progress
+        print!("\rFollowing option {} at joltage {}", &candidate, &cur_rating);
+
         // The remaining adapters are all adaptors except the one in the for loop
         let mut remaining_adapters = adapters.to_vec();
-        remaining_adapters.remove(idx);  // Don't include the current adapter in the leftovers
+        remaining_adapters.remove(*idx);  // Don't include the current adapter in the leftovers
 
         // Try to get the chain using the current remaining adapters
         // Except that the rating is now different: it's the candidate adapter in the loop
         let candidate_chain =
-            get_adapter_chain(&remaining_adapters, candidate as usize);
+            get_adapter_chain(&remaining_adapters, *candidate as usize);
 
         // If there is no valid path from the remaining adapters, using this current adapter
         // then this was not a good path and we continue with the next adapter
@@ -68,7 +71,7 @@ fn get_adapter_chain(adapters: &Vec<usize>, cur_rating: usize) -> Option<Vec<usi
 
         // The path is good: it includes all elements
         if returned_chain.len() == adapters.len() - 1 {
-            let mut complete_chain = vec![candidate as usize];
+            let mut complete_chain = vec![*candidate as usize];
             complete_chain.extend(returned_chain);
 
             // If we return full circle, having searched all paths
