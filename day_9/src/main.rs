@@ -1,10 +1,22 @@
 use std::fs;
+use std::cmp::max;
 
 fn main() {
     let lines = read_lines("input.txt");
     let numbers = lines_to_numbers(&lines);
-    let first_wrong_number = find_first_wrong_number(numbers, 25);
-    println!("First wrong number: {}", first_wrong_number);
+    let first_wrong_number = find_first_wrong_number(numbers.to_vec(), 25);
+    println!("First wrong number: {}", &first_wrong_number);
+
+    let (start, end) = get_contiguous_sum_range(&numbers, first_wrong_number);
+    println!("Start: {}, end: {}", &start, &end);
+    let sum_numbers = &numbers[start..end + 1];
+    println!("Numbers in this range: {:?}", &sum_numbers);
+
+    let min_val = sum_numbers.iter().min().unwrap();
+    let max_val = sum_numbers.iter().max().unwrap();
+    println!("Min value: {}", min_val);
+    println!("Min value: {}", max_val);
+    println!("Sum of min and max: {}", min_val + max_val);
 }
 
 fn read_lines(path: &str) -> Vec<String> {
@@ -79,18 +91,23 @@ fn partial_cartesian<T: Clone>(a: Vec<Vec<T>>, b: &[T]) -> Vec<Vec<T>> {
 }
 
 fn get_contiguous_sum_range(numbers: &Vec<usize>, sum: usize) -> (usize, usize) {
-    for (first_idx, num) in numbers.iter().enumerate() {
-        let mut last_idx = 0;
-        let mut slice_sum = 0;
+    // First loop: for the start index
+    for first_idx in 0..numbers.len() {
+        let mut last_idx = first_idx + 1;
+        let mut slice_sum = numbers[first_idx];
 
+        // Second loop: to detect the end of the sum range
         while slice_sum < sum && last_idx < numbers.len(){
-            slice_sum += num;
+            slice_sum += numbers[last_idx];
 
             if slice_sum == sum {  // The sum was found!
+                println!("Sum {} found: starting at {}, ending at {}",
+                         &slice_sum, &first_idx, &last_idx);
                 return (first_idx, last_idx)
             }
             last_idx += 1;
         }
+        println!("Start index {} did not yield a contiguous sum", first_idx);
     }
     (0, 0)
 }
