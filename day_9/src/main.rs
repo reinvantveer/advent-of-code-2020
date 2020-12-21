@@ -1,5 +1,4 @@
 use std::fs;
-use std::cmp::max;
 
 fn main() {
     let lines = read_lines("input.txt");
