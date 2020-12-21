@@ -36,7 +36,7 @@ fn lines_to_numbers(lines: &Vec<String>) -> Vec<usize> {
         .collect()
 }
 
-fn find_first_wrong_number<'a>(
+fn find_first_wrong_number(
     numbers: Vec<usize>,
     preamble_len: usize
 ) -> usize {
