@@ -25,9 +25,14 @@ fn get_device_rating(ratings: &Vec<usize>) -> usize {
     ratings.iter().max().unwrap() + 3
 }
 
-fn get_adapter_chain(ratings: &mut Vec<usize>) -> Vec<usize> {
-    let ordered = *ratings.sort();
-    ordered
+fn get_adapter_chain(ratings: Vec<usize>, cur_rating: usize) -> Vec<usize> {
+    // pluggable adapters have a rating 1-3 higher than the current one
+    let pluggable: Vec<_> = ratings
+        .iter()
+        .filter(|r| cur_rating - *r >= 1 || cur_rating - *r <= 3)
+        .map(|r| r.to_owned())
+        .collect();
+    pluggable
 }
 
 fn get_joltage_differences(ratings: &Vec<usize>) -> (usize, usize) {
@@ -36,7 +41,7 @@ fn get_joltage_differences(ratings: &Vec<usize>) -> (usize, usize) {
 
 #[cfg(test)]
 mod test {
-    use crate::{read_lines, lines_to_numbers, get_device_rating, get_joltage_differences};
+    use crate::{read_lines, lines_to_numbers, get_device_rating, get_joltage_differences, get_adapter_chain};
 
     #[test]
     fn test_simple_device_joltage_rating() {
@@ -51,6 +56,9 @@ mod test {
     fn test_adapter_chain() {
         let lines = read_lines("example1_1.txt");
         let ratings = lines_to_numbers(&lines);
+        let chain = get_adapter_chain(ratings, 0);
+
+        assert_eq!(chain, vec![])
 
     }
 
