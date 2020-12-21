@@ -36,7 +36,7 @@ fn get_adapter_chain(adapters: &Vec<usize>, cur_rating: usize) -> Option<Vec<usi
         .map(|v| v.to_owned())
         .collect();
 
-    // We're at the last good adapter in the set if there's only one
+    // We're at the last good adapter in the set if there's only one good candidate in the adapters
     if pluggables.len() == 1 && adapters.len() == 1 {
         return Some(adapters.to_vec())
     }
@@ -67,6 +67,15 @@ fn get_adapter_chain(adapters: &Vec<usize>, cur_rating: usize) -> Option<Vec<usi
         if returned_chain.len() == adapters.len() - 1 {
             let mut complete_chain = vec![candidate as usize];
             complete_chain.extend(returned_chain);
+
+            // If we return full circle, having searched all paths
+            if cur_rating == 0 {
+                // Now we only have to add the built-in device adapter
+                let last_adapter = complete_chain.last().unwrap();
+                let builtin_adapter = last_adapter + 3;
+                complete_chain.push(builtin_adapter.to_owned());
+            }
+
             return Some(complete_chain)
         }
     }
@@ -100,9 +109,8 @@ mod test {
         let chain = get_adapter_chain(&adapters, 0);
 
         let good_chain = chain.unwrap();
-        assert_eq!(good_chain.len(), adapters.len());
+        assert_eq!(good_chain.len(), adapters.len() + 1);
         assert_eq!(good_chain, vec![1, 4, 5, 6, 7, 10, 11, 12, 15, 16, 19, 22])
-
     }
 
     #[test]
