@@ -36,6 +36,10 @@ fn get_adapter_chain(adapters: &Vec<usize>, cur_rating: usize) -> Option<Vec<usi
         .map(|v| v.to_owned())
         .collect();
 
+    // We're at the last good adapter in the set if there's only one
+    if pluggables.len() == 1 && adapters.len() == 1 {
+        return Some(adapters.to_vec())
+    }
     // Brute-force try all possible paths by iterating over candidates from adapters that can plug
     // into the parent
     for (idx, candidate) in pluggables {
@@ -44,9 +48,9 @@ fn get_adapter_chain(adapters: &Vec<usize>, cur_rating: usize) -> Option<Vec<usi
         remaining_adapters.remove(idx);  // Don't include the current adapter in the leftovers
 
         // Try to get the chain using the current remaining adapters
-        // Except that the rating is now higher: it's including the candidate adapter in the loop
+        // Except that the rating is now different: it's the candidate adapter in the loop
         let candidate_chain =
-            get_adapter_chain(&remaining_adapters, cur_rating + candidate as usize);
+            get_adapter_chain(&remaining_adapters, candidate as usize);
 
         // If there is no valid path from the remaining adapters, using this current adapter
         // then this was not a good path and we continue with the next adapter
@@ -91,10 +95,12 @@ mod test {
     #[test]
     fn test_adapter_chain() {
         let lines = read_lines("example1_1.txt");
-        let ratings = lines_to_numbers(&lines);
-        let chain = get_adapter_chain(&ratings, 0);
+        let adapters = lines_to_numbers(&lines);
+        let chain = get_adapter_chain(&adapters, 0);
 
-        assert_eq!(chain.unwrap(), vec![])
+        let good_chain = chain.unwrap();
+        assert_eq!(good_chain.len(), adapters.len());
+        assert_eq!(good_chain, vec![1, 4, 5, 6, 7, 10, 11, 12, 15, 16, 19, 22])
 
     }
 
