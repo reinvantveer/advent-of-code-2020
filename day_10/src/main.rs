@@ -40,6 +40,7 @@ fn get_adapter_chain(adapters: &Vec<usize>, cur_rating: usize) -> Option<Vec<usi
     if pluggables.len() == 1 && adapters.len() == 1 {
         return Some(adapters.to_vec())
     }
+
     // Brute-force try all possible paths by iterating over candidates from adapters that can plug
     // into the parent
     for (idx, candidate) in pluggables {
@@ -64,7 +65,7 @@ fn get_adapter_chain(adapters: &Vec<usize>, cur_rating: usize) -> Option<Vec<usi
 
         // The path is good: it includes all elements
         if returned_chain.len() == adapters.len() - 1 {
-            let mut complete_chain = vec![idx];
+            let mut complete_chain = vec![candidate as usize];
             complete_chain.extend(returned_chain);
             return Some(complete_chain)
         }
