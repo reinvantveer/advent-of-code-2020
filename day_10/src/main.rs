@@ -26,9 +26,9 @@ fn get_device_rating(ratings: &Vec<usize>) -> usize {
     ratings.iter().max().unwrap() + 3
 }
 
-fn get_adapter_chain(ratings: &Vec<usize>, cur_rating: usize) -> Option<Vec<usize>> {
+fn get_adapter_chain(adapters: &Vec<usize>, cur_rating: usize) -> Option<Vec<usize>> {
     // pluggable adapters have a rating 1-3 higher than the current one
-    let pluggables: Vec<_> = ratings
+    let pluggables: Vec<_> = adapters
         .iter()
         .enumerate()
         .map(|(idx, r)| (idx, isize::try_from(*r).unwrap()))
@@ -39,27 +39,35 @@ fn get_adapter_chain(ratings: &Vec<usize>, cur_rating: usize) -> Option<Vec<usiz
     // Brute-force try all possible paths by iterating over candidates from adapters that can plug
     // into the parent
     for (idx, candidate) in pluggables {
-        let mut leftover_adapters = ratings.to_vec();
-        leftover_adapters.remove(idx);  // Don't include the current adapter in the leftovers
+        // The remaining adapters are all adaptors except the one in the for loop
+        let mut remaining_adapters = adapters.to_vec();
+        remaining_adapters.remove(idx);  // Don't include the current adapter in the leftovers
 
+        // Try to get the chain using the current remaining adapters
+        // Except that the rating is now higher: it's including the candidate adapter in the loop
         let candidate_chain =
-            get_adapter_chain(&leftover_adapters, cur_rating + candidate as usize);
+            get_adapter_chain(&remaining_adapters, cur_rating + candidate as usize);
+
+        // If there is no valid path from the remaining adapters, using this current adapter
+        // then this was not a good path and we continue with the next adapter
 
         if candidate_chain == None {
-            // No result from the leftover adapters, this was not a good path
             continue;
         }
 
-        // Unpack the result
+        // Unpack the result from analyzing the remaining adapters
         let returned_chain = candidate_chain.unwrap();
 
         // The path is good: it includes all elements
-        if returned_chain.len() == ratings.len() - 1 {
+        if returned_chain.len() == adapters.len() - 1 {
             let mut complete_chain = vec![idx];
             complete_chain.extend(returned_chain);
             return Some(complete_chain)
         }
     }
+
+    // If none of the paths in the for loop resulted in a valid chain of adapters, then return
+    // None
     None
 }
 
