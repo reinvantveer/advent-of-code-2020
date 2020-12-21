@@ -25,14 +25,37 @@ fn get_device_rating(ratings: &Vec<usize>) -> usize {
     ratings.iter().max().unwrap() + 3
 }
 
-fn get_adapter_chain(ratings: Vec<usize>, cur_rating: usize) -> Vec<usize> {
+fn get_adapter_chain(ratings: &Vec<usize>, cur_rating: usize) -> Option<Vec<usize>> {
     // pluggable adapters have a rating 1-3 higher than the current one
-    let pluggable: Vec<_> = ratings
+    let pluggables: Vec<_> = ratings
         .iter()
-        .filter(|r| cur_rating - *r >= 1 || cur_rating - *r <= 3)
-        .map(|r| r.to_owned())
+        .enumerate()
+        .filter(|(idx, r)| *r - cur_rating >= 1 && *r - cur_rating <= 3)
+        .map(|v| v.to_owned())
         .collect();
-    pluggable
+
+    // Brute-force try all possible paths by iterating over candidates from adapters that can plug
+    // into the parent
+    for (idx, candidate) in pluggables {
+        let mut leftover_adapters = ratings.to_vec();
+        leftover_adapters.remove(idx);
+
+        let candidate_chain =
+            get_adapter_chain(&leftover_adapters, cur_rating + candidate);
+
+        if ! let Some(&candidate_chain) { // No result from the leftover adapters, this was not a good path
+            continue;
+        }
+
+        // Unpack the result
+        let returned_chain = candidate_chain.unwrap();
+
+        return if returned_chain.len() == ratings.len() - 1 {
+            Some(returned_chain)
+        } else {
+            None
+        }
+    }
 }
 
 fn get_joltage_differences(ratings: &Vec<usize>) -> (usize, usize) {
