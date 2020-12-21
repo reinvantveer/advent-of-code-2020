@@ -1,4 +1,5 @@
 use std::fs;
+use std::convert::TryFrom;
 
 fn main() {
     println!("Hello, world!");
@@ -30,7 +31,8 @@ fn get_adapter_chain(ratings: &Vec<usize>, cur_rating: usize) -> Option<Vec<usiz
     let pluggables: Vec<_> = ratings
         .iter()
         .enumerate()
-        .filter(|(idx, r)| *r - cur_rating >= 1 && *r - cur_rating <= 3)
+        .map(|(idx, r)| (idx, isize::try_from(*r).unwrap()))
+        .filter(|(_, r )| *r - cur_rating as isize >= 1 && *r - cur_rating as isize <= 3)
         .map(|v| v.to_owned())
         .collect();
 
@@ -38,27 +40,30 @@ fn get_adapter_chain(ratings: &Vec<usize>, cur_rating: usize) -> Option<Vec<usiz
     // into the parent
     for (idx, candidate) in pluggables {
         let mut leftover_adapters = ratings.to_vec();
-        leftover_adapters.remove(idx);
+        leftover_adapters.remove(idx);  // Don't include the current adapter in the leftovers
 
         let candidate_chain =
-            get_adapter_chain(&leftover_adapters, cur_rating + candidate);
+            get_adapter_chain(&leftover_adapters, cur_rating + candidate as usize);
 
-        if ! let Some(&candidate_chain) { // No result from the leftover adapters, this was not a good path
+        if candidate_chain == None {
+            // No result from the leftover adapters, this was not a good path
             continue;
         }
 
         // Unpack the result
         let returned_chain = candidate_chain.unwrap();
 
-        return if returned_chain.len() == ratings.len() - 1 {
-            Some(returned_chain)
-        } else {
-            None
+        // The path is good: it includes all elements
+        if returned_chain.len() == ratings.len() - 1 {
+            let mut complete_chain = vec![idx];
+            complete_chain.extend(returned_chain);
+            return Some(complete_chain)
         }
     }
+    None
 }
 
-fn get_joltage_differences(ratings: &Vec<usize>) -> (usize, usize) {
+fn get_joltage_differences(_ratings: &Vec<usize>) -> (usize, usize) {
     (0, 0)
 }
 
@@ -79,9 +84,9 @@ mod test {
     fn test_adapter_chain() {
         let lines = read_lines("example1_1.txt");
         let ratings = lines_to_numbers(&lines);
-        let chain = get_adapter_chain(ratings, 0);
+        let chain = get_adapter_chain(&ratings, 0);
 
-        assert_eq!(chain, vec![])
+        assert_eq!(chain.unwrap(), vec![])
 
     }
 
