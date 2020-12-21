@@ -2,7 +2,14 @@ use std::fs;
 use std::convert::TryFrom;
 
 fn main() {
-    println!("Hello, world!");
+    let lines = read_lines("input.txt");
+    let adapters = lines_to_numbers(&lines);
+    let chain = get_adapter_chain(&adapters, 0);
+    let good_chain = chain.unwrap();
+    let (diffs_1_jolt, diffs_3_jolt) = get_joltage_differences(&good_chain);
+    println!("There are {} 1-jolt diff adapters and {} 3-jolt diff adapters in the chain {:?}",
+        &diffs_1_jolt, &diffs_3_jolt, &good_chain
+    );
 }
 
 fn read_lines(path: &str) -> Vec<String> {
@@ -20,10 +27,6 @@ fn lines_to_numbers(lines: &Vec<String>) -> Vec<usize> {
         .iter()
         .map(|line| line.parse().unwrap())
         .collect()
-}
-
-fn get_device_rating(ratings: &Vec<usize>) -> usize {
-    ratings.iter().max().unwrap() + 3
 }
 
 fn get_adapter_chain(adapters: &Vec<usize>, cur_rating: usize) -> Option<Vec<usize>> {
@@ -86,10 +89,14 @@ fn get_adapter_chain(adapters: &Vec<usize>, cur_rating: usize) -> Option<Vec<usi
 }
 
 fn get_joltage_differences(adapter_chain: &Vec<usize>) -> (usize, usize) {
-    let diffs: Vec<_> = adapter_chain[1..]
+    // We need to include the outlet socket!
+    let mut copied_chain = adapter_chain.to_vec();
+    copied_chain.insert(0, 0);
+
+    let diffs: Vec<_> = copied_chain[1..]
         .iter()
         .enumerate()
-        .map(|(idx, adapter)| adapter - adapter_chain[idx])
+        .map(|(idx, adapter)| adapter - copied_chain[idx])
         .collect();
 
     let diffs_1_jolt: Vec<_> = diffs
@@ -143,11 +150,11 @@ mod test {
     #[test]
     fn test_slightly_less_simple_joltage_rating() {
         let lines = read_lines("example1_2.txt");
-        let ratings = lines_to_numbers(&lines);
-        let device_rating = get_device_rating(&ratings);
-
-        assert_eq!(device_rating, 22);
+        let adapters = lines_to_numbers(&lines);
+        let chain = get_adapter_chain(&adapters, 0);
+        let good_chain = chain.unwrap();
+        let (diffs_1_jolt, diffs_3_jolt) = get_joltage_differences(&good_chain);
+        assert_eq!(diffs_1_jolt, 22);
+        assert_eq!(diffs_3_jolt, 10);
     }
-
-
 }
