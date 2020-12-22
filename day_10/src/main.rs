@@ -120,10 +120,16 @@ fn get_node_idx(node_weight: &usize, graph: &DiGraph<usize, usize>) -> Option<No
     node_idx
 }
 
+fn count_contained_paths(graph: &DiGraph<usize, usize>, start_idx: &NodeIndex) -> usize {
+    for edge in graph.edges(*start_idx) {
+        println!("{:?}", edge);
+    }
+    1
+}
 
 #[cfg(test)]
 mod test {
-    use crate::{read_lines, lines_to_numbers, get_joltage_differences, get_adapter_chain, make_adapter_graph, get_node_idx};
+    use crate::{read_lines, lines_to_numbers, get_joltage_differences, get_adapter_chain, make_adapter_graph, get_node_idx, count_contained_paths};
     use petgraph::algo::all_simple_paths;
 
     #[test]
@@ -185,6 +191,9 @@ mod test {
                 .collect();
 
         assert_eq!(paths.len(), 8);
+
+        let paths_count = count_contained_paths(&graph, &socket_idx);
+        assert_eq!(paths_count, 8);
     }
 
     #[test]
@@ -202,5 +211,7 @@ mod test {
                 .collect();
 
         assert_eq!(paths.len(), 19208);
+        let paths_count = count_contained_paths(&graph, &socket_idx);
+        assert_eq!(paths_count, 19208);
     }
 }
