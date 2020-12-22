@@ -62,8 +62,8 @@ fn get_joltage_differences(adapter_chain: &Vec<usize>) -> (usize, usize) {
     (diffs_1_jolt.len(), diffs_3_jolt.len())
 }
 
-fn make_adapter_graph(adapter_chain: &Vec<usize>) -> DiGraph<usize, ()> {
-    let mut adapter_graph = DiGraph::<usize, ()>::new();
+fn make_adapter_graph(adapter_chain: &Vec<usize>) -> DiGraph<usize, usize> {
+    let mut adapter_graph = DiGraph::<usize, usize>::new();
 
     for adapter in adapter_chain.iter() {
         adapter_graph.add_node(*adapter);
@@ -80,17 +80,22 @@ fn make_adapter_graph(adapter_chain: &Vec<usize>) -> DiGraph<usize, ()> {
             })
             .collect();
 
-        for compatible_adapter in compatible_adapters {
-            let adapter_idx = get_node_idx(adapter, &adapter_graph).unwrap();
-            let compatible_idx = get_node_idx(compatible_adapter, &adapter_graph).unwrap();
+        let edges: Vec<_> = compatible_adapters
+            .iter()
+            .map(|compatible_adapter| {
+                (get_node_idx(adapter, &adapter_graph).unwrap(),
+                 get_node_idx(*compatible_adapter, &adapter_graph).unwrap(),
+                 1)
+            })
+            .collect();
 
-            adapter_graph.add_edge(adapter_idx, compatible_idx, ());
-        }
+        adapter_graph.extend_with_edges(edges);
+
     }
     adapter_graph
 }
 
-fn get_node_idx(node_weight: &usize, graph: &DiGraph<usize, ()>) -> Option<NodeIndex<u32>> {
+fn get_node_idx(node_weight: &usize, graph: &DiGraph<usize, usize>) -> Option<NodeIndex<u32>> {
     let node_idx = graph
         .node_indices()
         .find(|i| graph[*i] == *node_weight);
@@ -102,7 +107,6 @@ fn get_node_idx(node_weight: &usize, graph: &DiGraph<usize, ()>) -> Option<NodeI
 #[cfg(test)]
 mod test {
     use crate::{read_lines, lines_to_numbers, get_joltage_differences, get_adapter_chain, make_adapter_graph, get_node_idx};
-    use petgraph::graph::DiGraph;
     use petgraph::algo::all_simple_paths;
 
     #[test]
@@ -143,7 +147,7 @@ mod test {
         let lines = read_lines("example1_1.txt");
         let adapters = lines_to_numbers(&lines);
         let chain = get_adapter_chain(&adapters);
-        let graph: DiGraph<usize, ()> = make_adapter_graph(&chain);
+        let graph = make_adapter_graph(&chain);
 
         assert_eq!(graph.node_count(), adapters.len() + 2);
         assert_eq!(graph.edge_count(), 16);
@@ -154,13 +158,13 @@ mod test {
         let lines = read_lines("example1_1.txt");
         let adapters = lines_to_numbers(&lines);
         let chain = get_adapter_chain(&adapters);
-        let graph: DiGraph<usize, ()> = make_adapter_graph(&chain);
+        let graph = make_adapter_graph(&chain);
 
         let socket_idx = get_node_idx(chain.first().unwrap(), &graph).unwrap();
         let device_idx = get_node_idx(chain.last().unwrap(), &graph).unwrap();
 
-        let paths: Vec<_>
-            = all_simple_paths(graph, socket_idx, device_idx, 0, None)
+        let paths: Vec<Vec<_>>
+            = all_simple_paths(&graph, socket_idx, device_idx, 0, None)
                 .collect();
 
         assert_eq!(paths.len(), 8);
