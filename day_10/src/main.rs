@@ -35,7 +35,6 @@ fn get_adapter_chain(adapters: &Vec<usize>) -> Vec<usize> {
     copied_chain.insert(0, 0);
 
     // Also: we need to include the built-in adapter
-    // Now we only have to add the built-in device adapter
     let last_adapter = copied_chain.last().unwrap();
     let builtin_adapter = last_adapter + 3;
     copied_chain.push(builtin_adapter.to_owned());
