@@ -64,9 +64,12 @@ fn get_joltage_differences(adapter_chain: &Vec<usize>) -> (usize, usize) {
 
 fn make_adapter_graph(adapter_chain: &Vec<usize>) -> DiGraph<usize, ()> {
     let mut adapter_graph = DiGraph::<usize, ()>::new();
-    for adapter in adapter_chain {
-        adapter_graph.add_node(*adapter);
 
+    for adapter in adapter_chain.iter() {
+        adapter_graph.add_node(*adapter);
+    }
+
+    for adapter in adapter_chain {
         let compatible_adapters: Vec<_> = adapter_chain
             .iter()
             .filter(|maybe_compat_adapter| {
@@ -77,20 +80,20 @@ fn make_adapter_graph(adapter_chain: &Vec<usize>) -> DiGraph<usize, ()> {
             })
             .collect();
 
-        for compatible in compatible_adapters {
-            let adapter_idx = get_node_idx(adapter, &adapter_graph);
-            let compatible_idx = get_node_idx(compatible, &adapter_graph);
+        for compatible_adapter in compatible_adapters {
+            let adapter_idx = get_node_idx(adapter, &adapter_graph).unwrap();
+            let compatible_idx = get_node_idx(compatible_adapter, &adapter_graph).unwrap();
+
             adapter_graph.add_edge(adapter_idx, compatible_idx, ());
         }
     }
     adapter_graph
 }
 
-fn get_node_idx(node_weight: &usize, graph: &DiGraph<usize, ()>) -> NodeIndex<u32> {
+fn get_node_idx(node_weight: &usize, graph: &DiGraph<usize, ()>) -> Option<NodeIndex<u32>> {
     let node_idx = graph
         .node_indices()
-        .find(|i| graph[*i] == *node_weight)
-        .unwrap();
+        .find(|i| graph[*i] == *node_weight);
 
     node_idx
 }
@@ -136,7 +139,7 @@ mod test {
 
     #[test]
     fn test_create_adapter_graph() {
-        let lines = read_lines("example1_2.txt");
+        let lines = read_lines("example1_1.txt");
         let adapters = lines_to_numbers(&lines);
         let chain = get_adapter_chain(&adapters);
         let graph: DiGraph<usize, ()> = make_adapter_graph(&chain);
