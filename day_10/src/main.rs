@@ -1,4 +1,5 @@
 use std::fs;
+use petgraph::graph::DiGraph;
 
 fn main() {
     let lines = read_lines("input.txt");
@@ -61,9 +62,18 @@ fn get_joltage_differences(adapter_chain: &Vec<usize>) -> (usize, usize) {
     (diffs_1_jolt.len(), diffs_3_jolt.len())
 }
 
+fn make_adapter_graph(adapter_chain: &Vec<usize>) -> DiGraph<usize, ()> {
+    let mut adapter_graph = DiGraph::<usize, ()>::new();
+    for adapter in adapter_chain {
+        adapter_graph.add_node(*adapter);
+    }
+    adapter_graph
+}
+
 #[cfg(test)]
 mod test {
-    use crate::{read_lines, lines_to_numbers, get_joltage_differences, get_adapter_chain};
+    use crate::{read_lines, lines_to_numbers, get_joltage_differences, get_adapter_chain, make_adapter_graph};
+    use petgraph::graph::DiGraph;
 
     #[test]
     fn test_adapter_chain() {
@@ -94,5 +104,18 @@ mod test {
         let (diffs_1_jolt, diffs_3_jolt) = get_joltage_differences(&chain);
         assert_eq!(diffs_1_jolt, 22);
         assert_eq!(diffs_3_jolt, 10);
+    }
+
+    // Part 2
+
+    #[test]
+    fn test_create_adapter_graph() {
+        let lines = read_lines("example1_2.txt");
+        let adapters = lines_to_numbers(&lines);
+        let chain = get_adapter_chain(&adapters);
+        let graph: DiGraph<usize, ()> = make_adapter_graph(&chain);
+
+        assert_eq!(graph.node_count(), adapters.len() + 2);
+        assert_eq!(graph.edge_count(), 16);
     }
 }
