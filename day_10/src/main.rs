@@ -1,5 +1,5 @@
 use std::fs;
-use petgraph::graph::DiGraph;
+use petgraph::graph::{DiGraph, NodeIndex};
 
 fn main() {
     let lines = read_lines("input.txt");
@@ -66,9 +66,35 @@ fn make_adapter_graph(adapter_chain: &Vec<usize>) -> DiGraph<usize, ()> {
     let mut adapter_graph = DiGraph::<usize, ()>::new();
     for adapter in adapter_chain {
         adapter_graph.add_node(*adapter);
+
+        let compatible_adapters: Vec<_> = adapter_chain
+            .iter()
+            .filter(|maybe_compat_adapter| {
+                let maybe_compat_adapter_isize = **maybe_compat_adapter as isize;
+                let adapter_isize = *adapter as isize;
+                let joltage_diff = maybe_compat_adapter_isize - adapter_isize;
+                joltage_diff >=1 && joltage_diff <=3
+            })
+            .collect();
+
+        for compatible in compatible_adapters {
+            let adapter_idx = get_node_idx(adapter, &adapter_graph);
+            let compatible_idx = get_node_idx(compatible, &adapter_graph);
+            adapter_graph.add_edge(adapter_idx, compatible_idx, ());
+        }
     }
     adapter_graph
 }
+
+fn get_node_idx(node_weight: &usize, graph: &DiGraph<usize, ()>) -> NodeIndex<u32> {
+    let node_idx = graph
+        .node_indices()
+        .find(|i| graph[*i] == *node_weight)
+        .unwrap();
+
+    node_idx
+}
+
 
 #[cfg(test)]
 mod test {
