@@ -1,15 +1,14 @@
 use std::fs;
-use std::convert::TryFrom;
 
 fn main() {
     let lines = read_lines("input.txt");
     let adapters = lines_to_numbers(&lines);
-    let chain = get_adapter_chain(&adapters, 0);
-    let good_chain = chain.unwrap();
-    let (diffs_1_jolt, diffs_3_jolt) = get_joltage_differences(&good_chain);
-    println!("There are {} 1-jolt diff adapters and {} 3-jolt diff adapters in the chain {:?}",
-        &diffs_1_jolt, &diffs_3_jolt, &good_chain
+    let chain = get_adapter_chain(&adapters);
+    let (diffs_1_jolt, diffs_3_jolt) = get_joltage_differences(&chain);
+    println!("There are {} 1-jolt diff adapters and {} 3-jolt diff adapters in the chain",
+        &diffs_1_jolt, &diffs_3_jolt
     );
+    println!("These numbers multiplied is {}", &diffs_1_jolt * &diffs_3_jolt);
 }
 
 fn read_lines(path: &str) -> Vec<String> {
@@ -29,77 +28,25 @@ fn lines_to_numbers(lines: &Vec<String>) -> Vec<usize> {
         .collect()
 }
 
-fn get_adapter_chain(adapters: &Vec<usize>, cur_rating: usize) -> Option<Vec<usize>> {
-    // pluggable adapters have a rating 1-3 higher than the current one
-    let pluggables: Vec<_> = adapters
-        .iter()
-        .enumerate()
-        .map(|(idx, r)| (idx, isize::try_from(*r).unwrap()))
-        .filter(|(_, r )| *r - cur_rating as isize >= 1 && *r - cur_rating as isize <= 3)
-        .map(|v| v.to_owned())
-        .collect();
+fn get_adapter_chain(adapters: &Vec<usize>) -> Vec<usize> {
+    // We need to include the outlet socket!
+    let mut copied_chain = adapters.to_vec();
+    copied_chain.sort();
+    copied_chain.insert(0, 0);
 
-    // We're at the last good adapter in the set if there's only one good candidate in the adapters
-    if pluggables.len() == 1 && adapters.len() == 1 {
-        return Some(adapters.to_vec())
-    }
-
-    // Brute-force try all possible paths by iterating over candidates from adapters that can plug
-    // into the parent
-    for (idx, candidate) in &pluggables {
-        // Show some progress
-        print!("\rFollowing option {} at joltage {}", &candidate, &cur_rating);
-
-        // The remaining adapters are all adaptors except the one in the for loop
-        let mut remaining_adapters = adapters.to_vec();
-        remaining_adapters.remove(*idx);  // Don't include the current adapter in the leftovers
-
-        // Try to get the chain using the current remaining adapters
-        // Except that the rating is now different: it's the candidate adapter in the loop
-        let candidate_chain =
-            get_adapter_chain(&remaining_adapters, *candidate as usize);
-
-        // If there is no valid path from the remaining adapters, using this current adapter
-        // then this was not a good path and we continue with the next adapter
-
-        if candidate_chain == None {
-            continue;
-        }
-
-        // Unpack the result from analyzing the remaining adapters
-        let returned_chain = candidate_chain.unwrap();
-
-        // The path is good: it includes all elements
-        if returned_chain.len() == adapters.len() - 1 {
-            let mut complete_chain = vec![*candidate as usize];
-            complete_chain.extend(returned_chain);
-
-            // If we return full circle, having searched all paths
-            if cur_rating == 0 {
-                // Now we only have to add the built-in device adapter
-                let last_adapter = complete_chain.last().unwrap();
-                let builtin_adapter = last_adapter + 3;
-                complete_chain.push(builtin_adapter.to_owned());
-            }
-
-            return Some(complete_chain)
-        }
-    }
-
-    // If none of the paths in the for loop resulted in a valid chain of adapters, then return
-    // None
-    None
+    // Also: we need to include the built-in adapter
+    // Now we only have to add the built-in device adapter
+    let last_adapter = copied_chain.last().unwrap();
+    let builtin_adapter = last_adapter + 3;
+    copied_chain.push(builtin_adapter.to_owned());
+    copied_chain
 }
 
 fn get_joltage_differences(adapter_chain: &Vec<usize>) -> (usize, usize) {
-    // We need to include the outlet socket!
-    let mut copied_chain = adapter_chain.to_vec();
-    copied_chain.insert(0, 0);
-
-    let diffs: Vec<_> = copied_chain[1..]
+    let diffs: Vec<_> = adapter_chain[1..]
         .iter()
         .enumerate()
-        .map(|(idx, adapter)| adapter - copied_chain[idx])
+        .map(|(idx, adapter)| adapter - adapter_chain[idx])
         .collect();
 
     let diffs_1_jolt: Vec<_> = diffs
@@ -117,35 +64,25 @@ fn get_joltage_differences(adapter_chain: &Vec<usize>) -> (usize, usize) {
 
 #[cfg(test)]
 mod test {
-    use crate::{read_lines, lines_to_numbers, get_device_rating, get_joltage_differences, get_adapter_chain};
-
-    #[test]
-    fn test_simple_device_joltage_rating() {
-        let lines = read_lines("example1_1.txt");
-        let ratings = lines_to_numbers(&lines);
-        let device_rating = get_device_rating(&ratings);
-
-        assert_eq!(device_rating, 22);
-    }
+    use crate::{read_lines, lines_to_numbers, get_joltage_differences, get_adapter_chain};
 
     #[test]
     fn test_adapter_chain() {
         let lines = read_lines("example1_1.txt");
         let adapters = lines_to_numbers(&lines);
-        let chain = get_adapter_chain(&adapters, 0);
-        let good_chain = chain.unwrap();
+        let chain = get_adapter_chain(&adapters);
 
-        assert_eq!(good_chain.len(), adapters.len() + 1);
-        assert_eq!(good_chain, vec![1, 4, 5, 6, 7, 10, 11, 12, 15, 16, 19, 22])
+        // Since the chain must include the outlet socket and the built-in adapter, it's longer
+        assert_eq!(chain.len(), adapters.len() + 2);
+        assert_eq!(chain, vec![0, 1, 4, 5, 6, 7, 10, 11, 12, 15, 16, 19, 22])
     }
 
     #[test]
     fn test_jolt_differences() {
         let lines = read_lines("example1_1.txt");
         let adapters = lines_to_numbers(&lines);
-        let chain = get_adapter_chain(&adapters, 0);
-        let good_chain = chain.unwrap();
-        let (diffs_1_jolt, diffs_3_jolt) = get_joltage_differences(&good_chain);
+        let chain = get_adapter_chain(&adapters);
+        let (diffs_1_jolt, diffs_3_jolt) = get_joltage_differences(&chain);
         assert_eq!(diffs_1_jolt, 7);
         assert_eq!(diffs_3_jolt, 5);
     }
@@ -154,9 +91,8 @@ mod test {
     fn test_slightly_less_simple_joltage_rating() {
         let lines = read_lines("example1_2.txt");
         let adapters = lines_to_numbers(&lines);
-        let chain = get_adapter_chain(&adapters, 0);
-        let good_chain = chain.unwrap();
-        let (diffs_1_jolt, diffs_3_jolt) = get_joltage_differences(&good_chain);
+        let chain = get_adapter_chain(&adapters);
+        let (diffs_1_jolt, diffs_3_jolt) = get_joltage_differences(&chain);
         assert_eq!(diffs_1_jolt, 22);
         assert_eq!(diffs_3_jolt, 10);
     }
