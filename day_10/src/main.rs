@@ -1,5 +1,6 @@
 use std::fs;
 use petgraph::graph::{DiGraph, NodeIndex};
+use petgraph::algo::all_simple_paths;
 
 fn main() {
     let lines = read_lines("input.txt");
@@ -10,6 +11,22 @@ fn main() {
         &diffs_1_jolt, &diffs_3_jolt
     );
     println!("These numbers multiplied is {}", &diffs_1_jolt * &diffs_3_jolt);
+
+    let graph = make_adapter_graph(&chain);
+
+    let socket_idx = get_node_idx(chain.first().unwrap(), &graph).unwrap();
+    let device_idx = get_node_idx(chain.last().unwrap(), &graph).unwrap();
+
+    let mut counter: usize = 0;
+    all_simple_paths(&graph, socket_idx, device_idx, 0, None)
+        .for_each(|_path: Vec<_>| {
+            if counter % 1_000_000 == 0 {
+                println!("{}", counter);
+            }
+            counter += 1
+        });
+
+    println!("{} paths in total", counter);
 }
 
 fn read_lines(path: &str) -> Vec<String> {
@@ -168,5 +185,22 @@ mod test {
                 .collect();
 
         assert_eq!(paths.len(), 8);
+    }
+
+    #[test]
+    fn test_bigger_num_paths() {
+        let lines = read_lines("example1_2.txt");
+        let adapters = lines_to_numbers(&lines);
+        let chain = get_adapter_chain(&adapters);
+        let graph = make_adapter_graph(&chain);
+
+        let socket_idx = get_node_idx(chain.first().unwrap(), &graph).unwrap();
+        let device_idx = get_node_idx(chain.last().unwrap(), &graph).unwrap();
+
+        let paths: Vec<Vec<_>>
+            = all_simple_paths(&graph, socket_idx, device_idx, 0, None)
+                .collect();
+
+        assert_eq!(paths.len(), 19208);
     }
 }
