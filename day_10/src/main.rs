@@ -101,8 +101,9 @@ fn get_node_idx(node_weight: &usize, graph: &DiGraph<usize, ()>) -> Option<NodeI
 
 #[cfg(test)]
 mod test {
-    use crate::{read_lines, lines_to_numbers, get_joltage_differences, get_adapter_chain, make_adapter_graph};
+    use crate::{read_lines, lines_to_numbers, get_joltage_differences, get_adapter_chain, make_adapter_graph, get_node_idx};
     use petgraph::graph::DiGraph;
+    use petgraph::algo::all_simple_paths;
 
     #[test]
     fn test_adapter_chain() {
@@ -146,5 +147,22 @@ mod test {
 
         assert_eq!(graph.node_count(), adapters.len() + 2);
         assert_eq!(graph.edge_count(), 16);
+    }
+
+    #[test]
+    fn test_num_paths() {
+        let lines = read_lines("example1_1.txt");
+        let adapters = lines_to_numbers(&lines);
+        let chain = get_adapter_chain(&adapters);
+        let graph: DiGraph<usize, ()> = make_adapter_graph(&chain);
+
+        let socket_idx = get_node_idx(chain.first().unwrap(), &graph).unwrap();
+        let device_idx = get_node_idx(chain.last().unwrap(), &graph).unwrap();
+
+        let paths: Vec<_>
+            = all_simple_paths(graph, socket_idx, device_idx, 0, None)
+                .collect();
+
+        assert_eq!(paths.len(), 8);
     }
 }
