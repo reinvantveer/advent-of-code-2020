@@ -1,6 +1,7 @@
 use std::fs;
 use petgraph::graph::{DiGraph, NodeIndex};
-use petgraph::algo::all_simple_paths;
+use petgraph::algo::{all_simple_paths, has_path_connecting};
+use petgraph::visit::EdgeRef;
 
 fn main() {
     let lines = read_lines("input.txt");
@@ -12,21 +13,12 @@ fn main() {
     );
     println!("These numbers multiplied is {}", &diffs_1_jolt * &diffs_3_jolt);
 
+    // Part 2
     let graph = make_adapter_graph(&chain);
-
     let socket_idx = get_node_idx(chain.first().unwrap(), &graph).unwrap();
-    let device_idx = get_node_idx(chain.last().unwrap(), &graph).unwrap();
+    let paths_count = count_contained_paths(&graph, &socket_idx) + 1;
 
-    let mut counter: usize = 0;
-    all_simple_paths(&graph, socket_idx, device_idx, 0, None)
-        .for_each(|_path: Vec<_>| {
-            if counter % 1_000_000 == 0 {
-                println!("{}", counter);
-            }
-            counter += 1
-        });
-
-    println!("{} paths in total", counter);
+    println!("{} paths in total", paths_count);
 }
 
 fn read_lines(path: &str) -> Vec<String> {
@@ -121,10 +113,22 @@ fn get_node_idx(node_weight: &usize, graph: &DiGraph<usize, usize>) -> Option<No
 }
 
 fn count_contained_paths(graph: &DiGraph<usize, usize>, start_idx: &NodeIndex) -> usize {
-    for edge in graph.edges(*start_idx) {
-        println!("{:?}", edge);
+    let mut path_count: usize = 0;
+
+    // Get the outgoing edges that will lead to the device
+    let outgoing_edges = graph
+        .edges(*start_idx)
+        .filter(|edge| has_path_connecting(&graph, *start_idx, edge.target(), None));
+
+    // There's an extra path for each outgoing edge, minus one, but only if it connects to the device
+    for (edge_idx, edge) in outgoing_edges.enumerate() {
+        // Add to the count only if it actually adds an extra path
+        if edge_idx > 0 { path_count += 1; }
+
+        path_count += count_contained_paths(&graph, &edge.target());
     }
-    1
+
+    path_count
 }
 
 #[cfg(test)]
@@ -192,7 +196,7 @@ mod test {
 
         assert_eq!(paths.len(), 8);
 
-        let paths_count = count_contained_paths(&graph, &socket_idx);
+        let paths_count = count_contained_paths(&graph, &socket_idx) + 1;
         assert_eq!(paths_count, 8);
     }
 
@@ -211,7 +215,8 @@ mod test {
                 .collect();
 
         assert_eq!(paths.len(), 19208);
-        let paths_count = count_contained_paths(&graph, &socket_idx);
+
+        let paths_count = count_contained_paths(&graph, &socket_idx) + 1;
         assert_eq!(paths_count, 19208);
     }
 }
