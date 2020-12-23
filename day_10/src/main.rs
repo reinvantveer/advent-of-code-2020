@@ -1,7 +1,7 @@
 use std::fs;
 use petgraph::graph::{DiGraph, NodeIndex};
-use petgraph::algo::{all_simple_paths, has_path_connecting};
 use petgraph::visit::EdgeRef;
+use std::collections::HashMap;
 
 fn main() {
     let lines = read_lines("input.txt");
@@ -14,9 +14,7 @@ fn main() {
     println!("These numbers multiplied is {}", &diffs_1_jolt * &diffs_3_jolt);
 
     // Part 2
-    let graph = make_adapter_graph(&chain);
-    let socket_idx = get_node_idx(chain.first().unwrap(), &graph).unwrap();
-    let paths_count = count_contained_paths(&graph, &socket_idx) + 1;
+    let paths_count = iterate_contained_paths(&chain);
 
     println!("{} paths in total", paths_count);
 }
@@ -117,8 +115,7 @@ fn count_contained_paths(graph: &DiGraph<usize, usize>, start_idx: &NodeIndex) -
 
     // Get the outgoing edges that will lead to the device
     let outgoing_edges = graph
-        .edges(*start_idx)
-        .filter(|edge| has_path_connecting(&graph, *start_idx, edge.target(), None));
+        .edges(*start_idx);
 
     // There's an extra path for each outgoing edge, minus one, but only if it connects to the device
     for (edge_idx, edge) in outgoing_edges.enumerate() {
@@ -131,9 +128,36 @@ fn count_contained_paths(graph: &DiGraph<usize, usize>, start_idx: &NodeIndex) -
     path_count
 }
 
+fn iterate_contained_paths(adapters: &Vec<usize>) -> i128 {
+    let jolts: Vec<_> = adapters
+        .iter()
+        .map(|adapter| *adapter as i32)
+        .collect();
+    // let jolt_range = -3_i32..*adapters.last().unwrap() as i32 + 3;
+
+    // Map to range
+    let mut paths: HashMap<i32, i128> = (-3_i32..*jolts.last().unwrap() as i32 + 3).map(|jolt| (jolt.clone(), 0)).collect();
+    // The socket has jolt level 0, so there is 1 path to that.
+    *paths.get_mut(&0).unwrap() = 1;
+
+    // Each subsequent jolt-converter can be reached from the previous
+    // two jolt levels, so add the paths that can reach that.
+    for jolt in jolts {
+        *paths.get_mut(&(jolt as i32)).unwrap() =
+            paths[&(jolt as i32 - 3)] +
+                paths[&(jolt as i32 - 2)] +
+                paths[&(jolt as i32 - 1)];
+
+        println!("Jolt: {}, Paths: {}", jolt, paths[&(jolt as i32)]);
+    }
+
+    let last_adapter = *adapters.last().unwrap();
+    paths[&(last_adapter as i32)]
+}
+
 #[cfg(test)]
 mod test {
-    use crate::{read_lines, lines_to_numbers, get_joltage_differences, get_adapter_chain, make_adapter_graph, get_node_idx, count_contained_paths};
+    use crate::{read_lines, lines_to_numbers, get_joltage_differences, get_adapter_chain, make_adapter_graph, get_node_idx, count_contained_paths, iterate_contained_paths};
     use petgraph::algo::all_simple_paths;
 
     #[test]
@@ -217,6 +241,10 @@ mod test {
         assert_eq!(paths.len(), 19208);
 
         let paths_count = count_contained_paths(&graph, &socket_idx) + 1;
+        assert_eq!(paths_count, 19208);
+
+        // The iterative method (contrasted with recursive method
+        let paths_count = iterate_contained_paths(&chain);
         assert_eq!(paths_count, 19208);
     }
 }
