@@ -128,27 +128,31 @@ fn count_contained_paths(graph: &DiGraph<usize, usize>, start_idx: &NodeIndex) -
     path_count
 }
 
-fn iterate_contained_paths(adapters: &Vec<usize>) -> i128 {
-    let jolts: Vec<_> = adapters
+// Adapted from https://gitlab.astro.rug.nl/buddel/adventofcode/-/blob/master/2020/rust/day10/src/bin/day10p2.rs
+fn iterate_contained_paths(adapters: &Vec<usize>) -> u128 {
+    let mut jolts: Vec<_> = adapters
         .iter()
         .map(|adapter| *adapter as i32)
         .collect();
-    // let jolt_range = -3_i32..*adapters.last().unwrap() as i32 + 3;
+
+    // Sort for good measure (if it wasn't done so already)
+    jolts.sort();
 
     // Map to range
-    let mut paths: HashMap<i32, i128> = (-3_i32..*jolts.last().unwrap() as i32 + 3).map(|jolt| (jolt.clone(), 0)).collect();
-    // The socket has jolt level 0, so there is 1 path to that.
-    *paths.get_mut(&0).unwrap() = 1;
+    let jolt_search_space = -3..*jolts.last().unwrap() + 3;
+    let mut paths: HashMap<i32, u128> = jolt_search_space.map(|jolt| (jolt.clone(), 0)).collect();
 
-    // Each subsequent jolt-converter can be reached from the previous
-    // two jolt levels, so add the paths that can reach that.
     for jolt in jolts {
-        *paths.get_mut(&(jolt as i32)).unwrap() =
-            paths[&(jolt as i32 - 3)] +
-                paths[&(jolt as i32 - 2)] +
-                paths[&(jolt as i32 - 1)];
+        // Each subsequent jolt-converter can be reached from the previous
+        // two jolt levels, so add the paths that can reach that.
+        match jolt {
+            // The socket has jolt level 0, so there is 1 path to that.
+            0 => *paths.get_mut(&jolt).unwrap() = 1,
+            // Otherwise: update subsequent paths to contain the paths reachin it
+            _ => *paths.get_mut(&jolt).unwrap() = paths[&(jolt - 3)] + paths[&(jolt - 2)] + paths[&(jolt - 1)]
+        };
 
-        println!("Jolt: {}, Paths: {}", jolt, paths[&(jolt as i32)]);
+        println!("Jolt: {}, Paths: {}", jolt, paths[&jolt]);
     }
 
     let last_adapter = *adapters.last().unwrap();
